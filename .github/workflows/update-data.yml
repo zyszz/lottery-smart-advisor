@@ -1,0 +1,65 @@
+name: Daily Lottery Data Update
+
+# 每日（北京时间 09:30）自动抓取三彩种最新开奖结果，校验后提交。
+# 官网在境外 runner 上可能不可达：抓取失败时恢复原文件并正常结束，不产生红灯、不写入坏数据。
+on:
+  schedule:
+    - cron: '30 1 * * *'   # UTC 01:30 = 北京 09:30
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lottery-data-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 抓取最新开奖并同步内联数据
+        id: fetch
+        shell: bash
+        run: |
+          set +e
+          python fetch_lottery.py --sync-html
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "::warning::官网抓取失败（境外网络不可达属预期内），恢复原文件"
+            git checkout -- lottery_data.js lottery_lib.html data/raw_ssq.json data/raw_dlt.json data/raw_qxc.json
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: 数据完整性校验
+        if: steps.fetch.outputs.changed == 'true'
+        run: python scripts/validate_data.py
+
+      - name: 公开版脱敏自检
+        if: steps.fetch.outputs.changed == 'true'
+        run: |
+          if grep -qE 'data-page-node-id|<!--pnid:|/page/page_comm/inject.js|C:/Users/' lottery_lib.html; then
+            echo "::error::同步后页面出现内部标识"; exit 1
+          fi
+
+      - name: 提交变更
+        shell: bash
+        run: |
+          if git diff --quiet -- lottery_data.js lottery_lib.html data/raw_ssq.json data/raw_dlt.json data/raw_qxc.json; then
+            echo "无新开奖数据，跳过提交"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lottery_data.js lottery_lib.html data/raw_ssq.json data/raw_dlt.json data/raw_qxc.json
+          git commit -m "chore(data): 自动同步开奖数据 $(date -u +%Y-%m-%d)"
+          git push

@@ -1,0 +1,2732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta content="no-cache, no-store, must-revalidate" http-equiv="Cache-Control">
+<meta content="no-cache" http-equiv="Pragma">
+<meta content="0" http-equiv="Expires">
+<title>彩票智能推荐系统 v5.0 - 双色球 / 大乐透 / 七星彩</title>
+<style>
+  :root {
+    --primary: #e8384d;
+    --blue-ball: #1e90ff;
+    --gold: #f5a623;
+    --purple: #764ba2;
+    --green: #27ae60;
+    --bg: #f4f6fa;
+    --card: #fff;
+    --text: #2c2c2c;
+    --muted: #888;
+    --border: #e0e0e0;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 50%, #e8384d 100%); color: #fff; padding: 18px 24px 14px; text-align: center; }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+  .header p { font-size: 11px; opacity: 0.85; margin-top: 4px; }
+  .version-badge { display: inline-block; background: rgba(255,255,255,0.25); border-radius: 10px; padding: 2px 10px; font-size: 11px; margin-left: 6px; }
+
+  /* Tab Bar */
+  .tab-bar { display: flex; background: #fff; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .tab-btn { flex: 1; padding: 13px 0; font-size: 14px; font-weight: 600; border: none; background: none; cursor: pointer; color: var(--muted); transition: all .2s; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+  .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab-btn:hover { background: #fef0f0; }
+
+  /* Page */
+  .page { display: none; padding: 14px; max-width: 820px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 12px; }
+  .card-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 11px; display: flex; align-items: center; gap: 6px; }
+  .card-title::before { content: ''; display: inline-block; width: 4px; height: 16px; background: var(--primary); border-radius: 2px; }
+
+  /* Strategy Selector */
+  .strategy-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .strat-btn { padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border); background: #fff; font-size: 12px; cursor: pointer; color: var(--muted); transition: all .15s; position: relative; }
+  .strat-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+  .strat-btn.smart-btn { border-color: #e67e22; color: #e67e22; font-weight: 600; }
+  .strat-btn.smart-btn.active { background: linear-gradient(135deg,#e67e22,#d35400); color: #fff; box-shadow: 0 2px 8px rgba(230,126,34,0.35); }
+  .strat-btn.data-btn { border-color: #8e44ad; color: #8e44ad; }
+  .strat-btn.data-btn.active { background: linear-gradient(135deg,#8e44ad,#9b59b6); color: #fff; box-shadow: 0 2px 8px rgba(142,68,173,0.35); }
+  /* 策略按钮新版标签 */
+  .strat-badge { display: inline-block; background: rgba(255,255,255,0.3); border-radius: 6px; padding: 0 4px; font-size: 9px; margin-left: 2px; vertical-align: middle; }
+
+  /* Count Selector */
+  .count-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .count-row label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .count-input { width: 60px; padding: 5px 8px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; text-align: center; }
+  .generate-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; background: var(--primary); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+  .generate-btn:hover { opacity: 0.88; }
+  .generate-btn:active { opacity: 0.75; }
+
+  /* Ball Display */
+  .results-box { min-height: 36px; }
+  .result-group { margin-bottom: 10px; padding: 11px 12px; background: #fafafa; border-radius: 10px; border: 1px solid var(--border); }
+  .result-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .result-group-label { font-size: 11px; color: var(--muted); }
+  .result-badges { display: flex; gap: 5px; }
+  .meta-badge { font-size: 10px; padding: 1px 7px; border-radius: 8px; background: #eee; color: var(--muted); }
+  .meta-badge.ac { background: #e8f4fd; color: #1a5276; }
+  .meta-badge.sum { background: #fef9e7; color: #7d6608; }
+  .meta-badge.span { background: #eafaf1; color: #1a5632; }
+  .balls-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .ball { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
+  .ball.red { background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b); }
+  .ball.blue { background: radial-gradient(circle at 35% 35%, #5dade2, #1a5276); }
+  .ball.special { background: radial-gradient(circle at 35% 35%, #f9ca24, #e67e22); color: #333; }
+  .ball.qxc-base { background: radial-gradient(circle at 35% 35%, #a29bfe, #6c5ce7); }
+  .ball.qxc-special { background: radial-gradient(circle at 35% 35%, #fd79a8, #e84393); }
+  .ball-sep { font-size: 16px; color: var(--border); font-weight: 300; }
+
+  /* Stats */
+  .stat-section { margin-bottom: 14px; }
+  .stat-section h3 { font-size: 12px; color: var(--muted); margin-bottom: 7px; font-weight: 600; letter-spacing: 0.5px; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px; }
+  .freq-bar-row { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+  .freq-label { width: 28px; font-size: 11px; color: var(--text); text-align: right; flex-shrink: 0; }
+  .freq-bar { height: 13px; border-radius: 6px; background: var(--primary); min-width: 4px; transition: width .4s; }
+  .freq-bar.blue-bar { background: var(--blue-ball); }
+  .freq-bar.purple-bar { background: #6c5ce7; }
+  .freq-cnt { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+
+  .hot-cold-row { display: flex; gap: 10px; }
+  .hot-cold-box { flex: 1; }
+  .hot-cold-box h4 { font-size: 11px; margin-bottom: 5px; color: var(--muted); }
+  .balls-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
+  .mini-ball { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; }
+  .mini-ball.red { background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b); }
+  .mini-ball.blue { background: radial-gradient(circle at 35% 35%, #5dade2, #1a5276); }
+  .mini-ball.special { background: radial-gradient(circle at 35% 35%, #f9ca24, #e67e22); color: #333; }
+  .mini-ball.cold-red { background: radial-gradient(circle at 35% 35%, #bdc3c7, #7f8c8d); }
+  .mini-ball.purple { background: radial-gradient(circle at 35% 35%, #a29bfe, #6c5ce7); }
+
+  /* Zone Analysis */
+  .zone-row { display: flex; gap: 0; margin-bottom: 5px; height: 24px; border-radius: 6px; overflow: hidden; }
+  .zone-seg { display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; font-weight: 600; transition: flex .4s; min-width: 16px; }
+
+  /* Pct bar */
+  .pct-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 12px; }
+  .pct-bar-wrap { flex: 1; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; }
+  .pct-fill { height: 100%; background: var(--primary); border-radius: 5px; }
+  .pct-fill.blue-fill { background: var(--blue-ball); }
+  .pct-fill.green-fill { background: #27ae60; }
+  .pct-num { width: 38px; text-align: right; font-size: 11px; color: var(--muted); }
+
+  /* Last Period */
+  .last-period-box { padding: 12px; background: linear-gradient(135deg, #fff5f5, #fff); border: 1px solid #fcd5d5; border-radius: 10px; margin-bottom: 10px; }
+  .last-period-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+
+  /* Notice */
+  .notice { background: #fff8e1; border-left: 3px solid var(--gold); padding: 10px 12px; border-radius: 6px; font-size: 12px; color: #7d6608; line-height: 1.6; }
+
+  /* Loading */
+  .loading { text-align: center; padding: 20px; color: var(--muted); font-size: 14px; }
+
+  /* Summary grid */
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .summary-item { background: #fafafa; border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px; }
+  .summary-item .s-label { font-size: 10px; color: var(--muted); margin-bottom: 2px; }
+  .summary-item .s-val { font-size: 16px; font-weight: 700; color: var(--primary); }
+
+  /* Missing Value */
+  .missing-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .missing-num { width: 26px; font-size: 11px; color: var(--text); text-align: center; flex-shrink: 0; }
+  .missing-bar { height: 11px; border-radius: 5px; min-width: 3px; background: linear-gradient(90deg, #f39c12, #e74c3c); transition: width .4s; }
+  .missing-cnt { font-size: 10px; color: var(--muted); flex-shrink: 0; min-width: 70px; }
+  .overdue-tag { display: inline-block; background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 10px; padding: 2px 7px; font-size: 10px; margin: 2px; }
+
+  /* Consecutive */
+  .consec-badge { display: inline-block; background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; border-radius: 8px; padding: 2px 8px; font-size: 10px; margin: 2px; }
+
+  /* Ramanujan Panel */
+  .rama-header { background: linear-gradient(135deg, #2c3e50 0%, #3498db 60%, #8e44ad 100%); color: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .rama-header h2 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .rama-header p { font-size: 10px; opacity: 0.85; line-height: 1.5; }
+  .rama-formula { background: #1a1a2e; color: #a8d8ea; font-family: 'Courier New', monospace; font-size: 11px; padding: 11px 13px; border-radius: 8px; margin-bottom: 10px; line-height: 1.8; overflow-x: auto; }
+  .rama-formula .formula-title { color: #ffd700; font-weight: 700; font-size: 12px; margin-bottom: 5px; }
+  .rama-formula .formula-eq { color: #fff; }
+  .rama-formula .formula-note { color: #888; font-size: 10px; }
+  .pi-digits { display: flex; flex-wrap: wrap; gap: 4px; margin: 7px 0; }
+  .pi-digit { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .pi-digit.highlight { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+  .score-bar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .score-label { width: 28px; font-size: 11px; color: var(--text); text-align: right; flex-shrink: 0; }
+  .score-bar { height: 11px; border-radius: 5px; min-width: 3px; background: linear-gradient(90deg,#667eea,#764ba2); }
+  .score-cnt { font-size: 10px; color: var(--muted); flex-shrink: 0; min-width: 38px; }
+  .tau-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin: 7px 0; }
+  .tau-cell { text-align: center; background: #fafafa; border: 1px solid var(--border); border-radius: 5px; padding: 3px 2px; }
+  .tau-cell .tc-num { font-size: 12px; font-weight: 700; color: var(--primary); }
+  .tau-cell .tc-tau { font-size: 8px; color: var(--muted); }
+  .tau-cell.tau-hot { background: #fff0f0; border-color: #f5a5a5; }
+  .rama-seed-box { background: linear-gradient(135deg, #f8f9fa, #e9ecef); border: 1px dashed #adb5bd; border-radius: 8px; padding: 9px 12px; margin-bottom: 8px; font-size: 12px; }
+  .seed-title { font-weight: 700; color: #495057; margin-bottom: 3px; font-size: 11px; }
+  .seed-val { font-family: monospace; color: #6c757d; word-break: break-all; font-size: 10px; }
+
+  /* Mandel Panel */
+  .mandel-header { background: linear-gradient(135deg, #134e5e 0%, #71b280 100%); color: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .mandel-header h2 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .mandel-header p { font-size: 10px; opacity: 0.85; line-height: 1.5; }
+  .ev-box { background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+  .ev-title { font-size: 11px; color: #2e7d32; font-weight: 700; margin-bottom: 5px; }
+  .ev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .ev-item { background: #fff; border-radius: 6px; padding: 6px 10px; }
+  .ev-item-label { font-size: 10px; color: var(--muted); }
+  .ev-item-val { font-size: 14px; font-weight: 700; color: #27ae60; }
+
+  /* Blue Cycle */
+  .blue-cycle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+  .bc-item { background: #f0f4ff; border: 1px solid #c5cae9; border-radius: 8px; padding: 8px 10px; text-align: center; }
+  .bc-label { font-size: 10px; color: #5c6bc0; margin-bottom: 3px; }
+  .bc-val { font-size: 15px; font-weight: 700; color: #3949ab; }
+
+  /* Tags row */
+  .tags-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+
+  /* v2.6 新增：策略描述提示条 */
+  .strategy-tip { font-size: 11px; color: #e67e22; background: #fff8f0; border: 1px solid #fcd5a5; border-radius: 6px; padding: 5px 10px; margin-bottom: 8px; display: none; }
+  .strategy-tip.show { display: block; }
+
+  /* v2.6 新增：版本信息卡片 */
+  .v26-badge { display: inline-block; background: linear-gradient(135deg,#e67e22,#d35400); color: #fff; border-radius: 8px; padding: 2px 8px; font-size: 10px; margin-left: 4px; vertical-align: middle; }
+
+  /* v2.6 新增：近期热号高亮显示 */
+  .rec3-tag { background: #fff3e0; border: 1px solid #e67e22; border-radius: 8px; padding: 1px 6px; font-size: 10px; color: #e67e22; margin: 2px; display: inline-block; }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .ball { width: 30px; height: 30px; font-size: 11px; }
+    .mini-ball { width: 22px; height: 22px; font-size: 9px; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .blue-cycle-grid { grid-template-columns: 1fr 1fr; }
+  }
+  /* Manual Input Form */
+  .manual-input-overlay { display:none; position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center; }
+  .manual-input-overlay.active { display:flex; }
+  .manual-input-box { background:#fff;border-radius:14px;padding:24px 28px;max-width:440px;width:92%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.25); }
+  .manual-input-box h2 { font-size:16px;font-weight:700;margin-bottom:14px;color:var(--primary); }
+  .manual-input-row { margin-bottom:12px; }
+  .manual-input-row label { display:block;font-size:12px;color:var(--muted);margin-bottom:4px; }
+  .manual-input-row input,.manual-input-row select { width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px; }
+  .manual-input-row input:focus,.manual-input-row select:focus { border-color:var(--primary);outline:none; }
+  .manual-input-hint { font-size:10px;color:var(--muted);margin-top:3px; }
+  .manual-balls-preview { display:flex;flex-wrap:wrap;gap:5px;margin-top:6px; }
+  .manual-input-btns { display:flex;gap:8px;margin-top:16px; }
+  .manual-input-btns button { flex:1;padding:9px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer; }
+  .manual-input-btns .btn-confirm { background:var(--primary);color:#fff; }
+  .manual-input-btns .btn-confirm:hover { opacity:0.88; }
+  .manual-input-btns .btn-cancel { background:#e0e0e0;color:#333; }
+  .manual-msg { font-size:11px;margin-top:8px;border-radius:6px;padding:6px 10px;display:none; }
+  .manual-msg.success { display:block;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7; }
+  .manual-msg.error { display:block;background:#fff5f5;color:#c0392b;border:1px solid #fcd5d5; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎯 彩票智能推荐系统 <span class="version-badge">v5.4</span></h1>
+  <p>综合智能 · 热冷对冲 · 数论凝聚 · 遗漏猎手 · AC跨度 · 重号邻号 · 启动自动更新</p>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('ssq')">🔴 双色球</button>
+  <button class="tab-btn" onclick="switchTab('dlt')">⭐ 大乐透</button>
+  <button class="tab-btn" onclick="switchTab('qxc')">🌟 七星彩</button>
+</div>
+
+<!-- ========== 双色球 ========== -->
+<div class="page active" id="page-ssq">
+  <div class="card">
+    <div class="card-title">号码生成</div>
+    <div class="strategy-row">
+      <button class="strat-btn smart-btn" data-s="smart" onclick="selectStrat('ssq',this)" title="传统加权代表（对照）：频率/遗漏/走势加权 + 多维结构约束；全历史实证与随机基线无差异">🧠 综合智能 <span class="strat-badge">对照</span></button>
+      <button class="strat-btn data-btn active" data-s="data" onclick="selectStrat('ssq',this)" title="数据驱动 v5.4：严格等概率基线(无频率/遗漏/重号加权) + 按真实分布自标定的 P2~P98 和值/奇偶/AC/分区软约束；1200期全历史实证期望命中不劣于随机基线">📊 数据驱动</button>
+    </div>
+    <div class="strategy-tip" id="ssq-strat-tip"></div>
+    <div class="count-row">
+      <label>生成组数</label>
+      <input class="count-input" id="ssq-count" max="10" min="1" type="number" value="5">
+      <button class="generate-btn" onclick="generate('ssq')">生成号码 →</button>
+      <span style="font-size:11px; color:#888; white-space:nowrap; align-self:center">回车 ↲ 即可预测</span>
+    </div>
+    <div class="results-box" id="ssq-results"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">最近一期</div>
+    <div id="ssq-last"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔍 遗漏值分析</div>
+    <div id="ssq-missing"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔗 连号 · 蓝球周期 · 跨度和值</div>
+    <div id="ssq-extra"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔬 数论凝聚分析</div>
+    <div id="ssq-mandel"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 数据统计</div>
+    <div id="ssq-stats"></div>
+  </div>
+</div>
+
+<!-- ========== 大乐透 ========== -->
+<div class="page" id="page-dlt">
+  <div class="card">
+    <div class="card-title">号码生成</div>
+    <div class="strategy-row">
+      <button class="strat-btn smart-btn" data-s="smart" onclick="selectStrat('dlt',this)" title="传统加权代表（对照）：频率/遗漏/走势加权 + 多维结构约束；全历史实证与随机基线无差异">🧠 综合智能 <span class="strat-badge">对照</span></button>
+      <button class="strat-btn data-btn active" data-s="data" onclick="selectStrat('dlt',this)" title="数据驱动 v5.4：前区严格均匀基线 + 自标定 P2~P98 和值/奇偶/AC/五区间软约束；后区严格均匀；全历史实证频率与遗漏均无预测力，故不加权">📊 数据驱动</button>
+    </div>
+    <div class="strategy-tip" id="dlt-strat-tip"></div>
+    <div class="count-row">
+      <label>生成组数</label>
+      <input class="count-input" id="dlt-count" max="10" min="1" type="number" value="5">
+      <button class="generate-btn" onclick="generate('dlt')">生成号码 →</button>
+      <span style="font-size:11px; color:#888; white-space:nowrap; align-self:center">回车 ↲ 即可预测</span>
+    </div>
+    <div class="results-box" id="dlt-results"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">最近一期</div>
+    <div id="dlt-last"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔍 遗漏值分析</div>
+    <div id="dlt-missing"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔗 连号 · 蓝球周期 · 跨度和值</div>
+    <div id="dlt-extra"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔬 数论凝聚分析</div>
+    <div id="dlt-mandel"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 数据统计</div>
+    <div id="dlt-stats"></div>
+  </div>
+</div>
+
+<!-- ========== 七星彩 ========== -->
+<div class="page" id="page-qxc">
+  <div class="card">
+    <div class="card-title">号码生成</div>
+    <div class="strategy-row">
+      <button class="strat-btn smart-btn" data-s="smart" onclick="selectStrat('qxc',this)" title="传统加权代表（对照）：频率/遗漏/走势加权 + 多维结构约束；全历史实证与随机基线无差异">🧠 综合智能 <span class="strat-badge">对照</span></button>
+      <button class="strat-btn data-btn active" data-s="data" onclick="selectStrat('qxc',this)" title="数据驱动 v5.4：前6位逐位严格均匀 + 特别号(0~14)严格均匀 + 自标定 P2~P98 和值/奇偶软约束；逐位频率与同位重号全历史实测≈0σ">📊 数据驱动</button>
+    </div>
+    <div class="strategy-tip" id="qxc-strat-tip"></div>
+    <div class="count-row">
+      <label>生成组数</label>
+      <input class="count-input" id="qxc-count" max="10" min="1" type="number" value="5">
+      <button class="generate-btn" onclick="generate('qxc')">生成号码 →</button>
+      <span style="font-size:11px; color:#888; white-space:nowrap; align-self:center">回车 ↲ 即可预测</span>
+    </div>
+    <div class="results-box" id="qxc-results"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">最近一期</div>
+    <div id="qxc-last"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔬 数论凝聚分析</div>
+    <div id="qxc-mandel"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 数据统计</div>
+    <div id="qxc-stats"></div>
+  </div>
+</div>
+
+<!-- Toolbar -->
+<div style="max-width:820px; margin:0 auto; padding:0 14px 10px">
+  <div class="card" style="padding:10px 14px">
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center">
+      <span style="font-size:12px; font-weight:700; color:var(--text)">📦 数据管理</span>
+      <button class="tb-btn" onclick="exportAllData()" style="background:#f0f4ff; color:#5c6bc0; border:1px solid #c5cae9; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer">📤 导出JSON</button>
+      <button class="tb-btn" onclick="document.getElementById('import-file').click()" style="background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer">📥 导入JSON</button>
+      <input accept=".json" id="import-file" onchange="importData(event)" type="file" style="display:none">
+      <button class="tb-btn" onclick="refreshData()" title="http:// 模式实时刷新（需启动 start.py）；file:// 模式读取本地 lottery_data.js（需先运行 fetch_lottery.py）" style="background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer">🔄 刷新数据</button>
+      <button class="tb-btn" onclick="openManualInput()" style="background:#e8f4fd; color:#1565c0; border:1px solid #90caf9; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer">✏️ 手动输入</button>
+      <button class="tb-btn" onclick="resetAllData()" style="background:#fff5f5; color:#c0392b; border:1px solid #fcd5d5; border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer">🔄 重置数据</button>
+      <span id="update-status" style="font-size:10px; color:var(--muted); margin-left:auto"></span>
+    </div>
+  </div>
+  <div id="import-preview" style="display:none; background:#e8f5e9; border:1px solid #a5d6a7; border-radius:8px; padding:10px 14px; margin-top:8px; font-size:12px; color:#2e7d32"></div>
+  <div id="network-status" style="display:none; background:#fff3e0; border:1px solid #ffcc80; border-radius:8px; padding:10px 14px; margin-top:8px; font-size:12px; color:#e65100"></div>
+</div>
+
+<!-- Notice -->
+<div style="max-width:820px; margin:0 auto; padding:0 14px 24px">
+  <div class="notice">⚠️ 温馨提示：彩票开奖结果完全随机，本系统推荐号码基于历史数据统计与数论模型，不代表中奖概率。请理性购彩，量力而行。</div>
+</div>
+
+<!-- 手动输入最新开奖数据 弹窗 -->
+<div class="manual-input-overlay" id="manual-overlay">
+  <div class="manual-input-box">
+    <h2>✏️ 手动输入最新开奖数据</h2>
+    <div class="manual-input-row">
+      <label>彩票类型</label>
+      <select id="manual-type" onchange="onManualTypeChange()">
+        <option value="ssq">双色球</option>
+        <option value="dlt">大乐透</option>
+        <option value="qxc">七星彩</option>
+      </select>
+    </div>
+    <div class="manual-input-row">
+      <label>期号（如 2025065）</label>
+      <input id="manual-issue" maxlength="10" placeholder="2025065" type="text">
+    </div>
+    <div class="manual-input-row" id="manual-red-row">
+      <label id="manual-red-label">红球号码（空格或逗号分隔，如 1 5 12 18 25 33）</label>
+      <input id="manual-red-input" placeholder="1 5 12 18 25 33" type="text">
+      <div class="manual-input-hint">双色球/大乐透：输入红球号码，1~33 或 1~35</div>
+    </div>
+    <div class="manual-input-row" id="manual-blue-row">
+      <label id="manual-blue-label">蓝球号码（空格或逗号分隔）</label>
+      <input id="manual-blue-input" placeholder="7" type="text">
+      <div class="manual-input-hint" id="manual-blue-hint">双色球：1个蓝球(1~16)；大乐透：2个蓝球(1~12)</div>
+    </div>
+    <div class="manual-input-row" id="manual-qxc-row" style="display:none">
+      <label>七星彩号码（7位数字，空格或逗号分隔）</label>
+      <input id="manual-qxc-input" placeholder="3 8 1 5 2 9 7" type="text">
+      <div class="manual-input-hint">输入7位数字，前6位(0~9) + 特别号(0~14)</div>
+    </div>
+    <div class="manual-balls-preview" id="manual-balls-preview"></div>
+    <div class="manual-msg" id="manual-msg"></div>
+    <div class="manual-input-btns">
+      <button class="btn-confirm" onclick="confirmManualInput()">✅ 确认添加</button>
+      <button class="btn-cancel" onclick="closeManualInput()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 最新开奖数据（由 fetch_lottery.py 自动生成，无 CORS 限制） -->
+<!-- v4.3: 缓存破坏 — http 模式附加时间戳防止缓存；file 模式不加（浏览器不缓存本地文件，加查询参数反致404） -->
+<script>
+if (location.protocol === 'file:') {
+  document.write('<script src="lottery_data.js"><\/script>');
+} else {
+  document.write('<script src="lottery_data.js?_t=' + Date.now() + '"><\/script>');
+}
+</script>
+
+<script>
+// =========================================================
+//  拉马努金公式实现 (Ramanujan 1914)
+// =========================================================
+const TAU_KNOWN = {
+  1:1,2:-24,3:252,4:-1472,5:4830,6:-6048,7:-16744,8:84480,9:-113643,10:-115920,
+  11:534612,12:-370944,13:-577738,14:401856,15:1217160,16:987136,17:-6905934,
+  18:2727432,19:10661420,20:-7109760,21:-4219488,22:-12830688,23:18643272,
+  24:21288960,25:-25499225,26:13865712,27:-73279080,28:24647168,29:128406630,
+  30:-29211840,31:-52843168,32:-196706304,33:134722488,34:165742416,35:-80873520
+};
+function gcd(a,b){return b===0?a:gcd(b,a%b);}
+function mobius(n){if(n===1)return 1;let f=0,m=n;for(let p=2;p*p<=m;p++){if(m%p===0){f++;m/=p;if(m%p===0)return 0;}}if(m>1)f++;return f%2===0?1:-1;}
+function eulerPhi(n){let r=n,m=n;for(let p=2;p*p<=m;p++){if(m%p===0){while(m%p===0)m/=p;r-=r/p;}}if(m>1)r-=r/m;return Math.round(r);}
+function ramanujanSum(q,n){const g=gcd(n,q);const qg=q/g;return mobius(qg)*eulerPhi(q)/eulerPhi(qg);}
+function tauScore(n){if(TAU_KNOWN[n]!==undefined)return(Math.abs(TAU_KNOWN[n])%1000)/1000;const k=n%12;const primes=[2,3,5,7,11,13,17,19,23];let s=0.5;primes.forEach(p=>{if(n%p===0)s=(s+0.618)%1;});return(s+(k/12)*0.382)%1;}
+function ramaPiDigits(){return[3,1,4,1,5,9,2,6,5,3,5,8,9,7,9,3,2,3,8,4,6,2,6,4,3,3,8,3,2,7,9,5,0,2,8,8,4,1,9,7,1,6,9,3,9,9,3,7,5,1];}
+function ramaScore(n){const piD=ramaPiDigits();const tauW=tauScore(n);const piW=piD.filter(d=>d===(n%10)).length/piD.length;const rsW=(Math.abs(ramanujanSum(7,n))+Math.abs(ramanujanSum(11,n)))/10;const goldenW=Math.abs(Math.sin(n*Math.PI*0.618));return tauW*0.35+piW*0.25+rsW*0.2+goldenW*0.2;}
+function ramaPool(maxNum){const s=[];for(let n=1;n<=maxNum;n++)s.push({n,s:ramaScore(n)});s.sort((a,b)=>b.s-a.s);return s;}
+function ramaSeed(){const ts=Date.now();const piD=ramaPiDigits();return piD.map((d,i)=>(d+Math.floor((ts>>(i%16))&0xF))%10).join('');}
+
+// =========================================================
+//  Mandel 曼德尔凝聚分析
+// =========================================================
+function combination(n,k){if(k>n)return 0;if(k===0||k===n)return 1;let r=1;for(let i=0;i<k;i++){r=r*(n-i)/(i+1);}return Math.round(r);}
+function mandelSumRange(count,min,max){// 和值的正态近似
+  const mu=count*(min+max)/2;const sigma=Math.sqrt(count*(max-min+1)*(max-min+1)/12);
+  return{mu,sigma,range68:[Math.round(mu-sigma),Math.round(mu+sigma)],range95:[Math.round(mu-2*sigma),Math.round(mu+2*sigma)]};
+}
+function mandelScore(num,maxNum,freq){const f=freq[num]||0;const maxF=Math.max(...Object.values(freq),1);const freqW=f/maxF;const posW=1-Math.abs(num-maxNum/2)/(maxNum/2);return freqW*0.6+posW*0.4;}
+function mandelPool(maxNum,freq){const scores=[];for(let n=1;n<=maxNum;n++)scores.push({n,s:mandelScore(n,maxNum,freq)});scores.sort((a,b)=>b.s-a.s);const pool=[];scores.forEach(({n,s})=>{const w=Math.max(1,Math.round(s*20+2));for(let i=0;i<w;i++)pool.push(n);});return pool;}
+
+// =========================================================
+//  历史数据
+// =========================================================
+const SSQ_DATA = [
+  // ---- 最新真实数据 (2026-11-13 07:53 fetch_lottery.py v5.0 更新) ----
+  ["2026130",[1,2,6,16,20,28],[2]],
+  ["2026129",[3,9,16,20,25,30],[5]],
+  ["2026128",[5,6,10,25,27,30],[11]],
+  ["2026127",[13,14,19,25,29,32],[12]],
+  ["2026126",[9,10,13,22,29,32],[12]],
+  ["2026125",[4,6,10,15,26,27],[11]],
+  ["2026124",[3,11,17,22,23,29],[9]],
+  ["2026123",[4,5,20,21,26,30],[12]],
+  ["2026122",[1,2,4,17,19,30],[9]],
+  ["2026121",[2,7,20,24,26,30],[2]],
+  ["2026120",[13,14,16,18,20,31],[3]],
+  ["2026119",[12,22,23,25,27,30],[4]],
+  ["2026118",[5,21,22,23,28,31],[14]],
+  ["2026117",[4,11,14,22,26,27],[4]],
+  ["2026116",[10,19,24,27,28,33],[12]],
+  ["2026115",[4,13,14,18,22,24],[3]],
+  ["2026114",[7,18,23,24,29,31],[10]],
+  ["2026113",[3,4,20,24,29,30],[11]],
+  ["2026112",[1,4,11,12,17,29],[11]],
+  ["2026111",[6,7,14,22,31,32],[5]],
+  ["2026110",[2,5,16,19,26,32],[14]],
+  ["2026109",[9,12,15,26,30,33],[6]],
+  ["2026108",[6,11,13,14,20,28],[16]],
+  ["2026107",[1,5,9,17,24,33],[4]],
+  ["2026106",[6,11,13,14,22,30],[14]],
+  ["2026105",[2,4,13,14,15,30],[8]],
+  ["2026104",[11,12,13,19,20,31],[3]],
+  ["2026103",[4,11,20,27,28,30],[15]],
+  ["2026102",[3,4,10,13,16,25],[9]],
+  ["2026101",[5,6,8,9,24,25],[12]],
+  ["2026100",[3,4,9,13,22,31],[4]],
+  ["2026099",[1,12,14,18,30,31],[2]],
+  ["2026098",[8,16,18,22,25,26],[7]],
+  ["2026097",[5,16,24,26,29,30],[2]],
+  ["2026096",[1,4,16,22,26,31],[4]],
+  ["2026095",[4,6,14,21,22,33],[16]],
+  ["2026094",[6,13,15,17,24,25],[1]],
+  ["2026093",[5,8,15,20,21,24],[9]],
+  ["2026092",[9,11,12,25,30,33],[11]],
+  ["2026091",[2,13,14,16,20,24],[5]],
+  ["2026090",[2,4,15,23,25,27],[3]],
+  ["2026089",[5,18,23,24,27,33],[3]],
+  ["2026088",[6,7,11,18,22,33],[5]],
+  ["2026087",[4,6,10,18,23,31],[11]],
+  ["2026086",[2,5,14,25,30,32],[5]],
+  ["2026085",[6,9,13,17,24,28],[15]],
+  ["2026084",[1,5,6,10,12,16],[5]],
+  ["2026083",[7,14,15,23,28,33],[3]],
+  ["2026082",[5,7,10,14,21,28],[4]],
+  ["2026081",[6,10,12,15,24,27],[12]],
+];
+
+const DLT_DATA = [
+  // ---- 最新真实数据 (2026-11-13 07:53 fetch_lottery.py v5.0 更新) ----
+  ["2026129",[2,12,14,17,33],[7,8]],
+  ["2026128",[3,13,20,25,34],[9,12]],
+  ["2026127",[5,6,17,18,27],[3,12]],
+  ["2026126",[5,11,17,25,34],[4,6]],
+  ["2026125",[12,13,23,25,29],[7,10]],
+  ["2026124",[12,14,18,22,27],[1,9]],
+  ["2026123",[13,18,19,20,28],[9,11]],
+  ["2026122",[2,14,21,22,24],[2,12]],
+  ["2026121",[6,8,19,24,25],[1,8]],
+  ["2026120",[1,6,10,15,32],[3,4]],
+  ["2026119",[3,6,20,24,32],[4,7]],
+  ["2026118",[2,9,21,26,32],[6,12]],
+  ["2026117",[4,13,19,29,31],[2,12]],
+  ["2026116",[9,18,22,25,35],[1,10]],
+  ["2026115",[12,20,32,33,35],[6,7]],
+  ["2026114",[8,12,15,29,30],[9,12]],
+  ["2026113",[2,4,6,10,11],[1,10]],
+  ["2026112",[1,3,5,10,22],[3,9]],
+  ["2026111",[10,11,17,26,29],[1,3]],
+  ["2026110",[3,24,25,26,35],[7,9]],
+  ["2026109",[12,14,16,27,34],[4,8]],
+  ["2026108",[1,5,7,21,35],[1,4]],
+  ["2026107",[2,5,7,14,22],[4,10]],
+  ["2026106",[14,17,21,25,28],[4,6]],
+  ["2026105",[10,14,30,33,34],[9,12]],
+  ["2026104",[1,6,14,15,26],[8,9]],
+  ["2026103",[3,16,17,32,35],[2,12]],
+  ["2026102",[1,3,7,27,28],[6,7]],
+  ["2026101",[9,11,18,26,33],[9,11]],
+  ["2026100",[2,6,11,15,31],[7,8]],
+  ["2026099",[2,17,20,29,33],[8,9]],
+  ["2026098",[7,9,18,19,21],[2,9]],
+  ["2026097",[3,10,12,20,25],[1,9]],
+  ["2026096",[8,9,10,11,25],[4,12]],
+  ["2026095",[4,6,8,10,14],[4,5]],
+  ["2026094",[5,14,15,17,33],[1,7]],
+  ["2026093",[8,10,22,26,29],[3,10]],
+  ["2026092",[12,16,19,29,33],[7,9]],
+  ["2026091",[3,4,7,12,32],[1,2]],
+  ["2026090",[9,14,17,19,24],[2,9]],
+  ["2026089",[3,7,12,14,26],[5,11]],
+  ["2026088",[3,9,11,24,27],[5,11]],
+  ["2026087",[5,10,16,24,27],[4,10]],
+  ["2026086",[10,11,18,22,35],[6,12]],
+  ["2026085",[3,4,14,28,31],[5,7]],
+  ["2026084",[13,25,30,32,33],[4,5]],
+  ["2026083",[14,15,16,23,26],[7,9]],
+  ["2026082",[16,26,27,28,34],[2,6]],
+  ["2026081",[8,16,18,24,34],[9,12]],
+  ["2026080",[5,10,15,21,23],[7,8]],
+];
+
+const QXC_DATA = [
+  // ---- 最新真实数据 (2026-11-13 07:53 fetch_lottery.py v5.0 更新) ----
+  ["2026129",[4,0,6,5,2,9,14]],
+  ["2026128",[9,3,8,6,2,5,8]],
+  ["2026127",[5,1,3,7,4,8,8]],
+  ["2026126",[3,3,3,4,1,7,8]],
+  ["2026125",[2,9,4,5,6,3,2]],
+  ["2026124",[2,1,2,1,9,1,6]],
+  ["2026123",[5,1,8,0,8,0,2]],
+  ["2026122",[9,9,7,5,0,4,9]],
+  ["2026121",[9,5,5,6,6,2,4]],
+  ["2026120",[8,9,1,1,5,9,5]],
+  ["2026119",[5,2,7,0,1,0,11]],
+  ["2026118",[0,6,8,4,2,8,7]],
+  ["2026117",[7,7,5,5,1,3,11]],
+  ["2026116",[8,7,1,5,7,0,6]],
+  ["2026115",[6,3,9,3,7,3,3]],
+  ["2026114",[1,3,8,4,1,5,9]],
+  ["2026113",[7,0,6,8,7,4,0]],
+  ["2026112",[4,2,6,4,1,4,8]],
+  ["2026111",[7,8,9,1,0,1,1]],
+  ["2026110",[6,2,5,9,6,9,13]],
+  ["2026109",[2,9,0,5,0,3,9]],
+  ["2026108",[9,5,2,0,8,6,9]],
+  ["2026107",[2,8,3,4,5,6,4]],
+  ["2026106",[5,1,9,5,8,5,11]],
+  ["2026105",[5,9,9,5,3,3,0]],
+  ["2026104",[7,4,0,7,2,8,14]],
+  ["2026103",[0,0,0,6,0,2,8]],
+  ["2026102",[1,7,5,5,8,8,6]],
+  ["2026101",[6,8,6,1,0,5,13]],
+  ["2026100",[8,3,1,1,7,3,0]],
+  ["2026099",[9,4,6,3,3,4,5]],
+  ["2026098",[5,6,8,6,3,3,3]],
+  ["2026097",[8,2,7,4,4,8,12]],
+  ["2026096",[1,4,2,6,9,5,5]],
+  ["2026095",[6,6,4,9,0,8,7]],
+  ["2026094",[0,6,0,2,4,0,0]],
+  ["2026093",[4,9,6,5,0,8,7]],
+  ["2026092",[7,8,3,8,5,6,12]],
+  ["2026091",[7,9,5,8,5,0,6]],
+  ["2026090",[7,0,1,6,1,2,6]],
+  ["2026089",[7,1,8,9,3,4,0]],
+  ["2026088",[9,5,1,9,5,9,2]],
+  ["2026087",[3,9,9,2,8,6,10]],
+  ["2026086",[9,7,1,0,3,4,0]],
+  ["2026085",[8,3,7,0,5,1,4]],
+  ["2026084",[6,3,8,4,4,0,7]],
+  ["2026083",[5,2,1,9,6,3,12]],
+  ["2026082",[9,4,7,1,0,4,7]],
+  ["2026081",[4,2,3,3,5,5,8]],
+  ["2026080",[3,1,2,4,9,4,6]],
+];
+
+// =========================================================
+//  通用工具函数
+// =========================================================
+const PHI = 0.618;
+const PHI_C = 0.382;
+
+function calcAC(nums) {
+  const sorted = nums.slice().sort((a,b)=>a-b);
+  const diffs = new Set();
+  for(let i=0;i<sorted.length;i++)for(let j=i+1;j<sorted.length;j++)diffs.add(sorted[j]-sorted[i]);
+  return diffs.size - (nums.length - 1);
+}
+
+function sampleN(arr, n) {
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a.slice(0,n);
+}
+
+function weightedPool(nums, weightFn, scale) {
+  const pool=[];
+  nums.forEach(n=>{const w=Math.max(1,Math.round(weightFn(n)*scale));for(let i=0;i<w;i++)pool.push(n);});
+  return pool;
+}
+
+// =========================================================
+//  数据分析
+// =========================================================
+function analyzeData(data, getRedsFn, getBlueFn, redMax, blueMax, isQXC) {
+  // 频率统计
+  const redCnt = {}, blueCnt = {};
+  for(let n=1; n<=redMax; n++) redCnt[n]=0;
+  if(blueMax>0) for(let n=1; n<=blueMax; n++) blueCnt[n]=0;
+
+  data.forEach(row => {
+    getRedsFn(row).forEach(n=>{if(n>=1&&n<=redMax) redCnt[n]=(redCnt[n]||0)+1;});
+    if(blueMax>0) getBlueFn(row).forEach(n=>{if(n>=1&&n<=blueMax) blueCnt[n]=(blueCnt[n]||0)+1;});
+  });
+
+  // 热冷号
+  const sortedReds = Object.entries(redCnt).map(([n,c])=>({n:+n,c})).sort((a,b)=>b.c-a.c);
+  const sortedBlues = Object.entries(blueCnt).map(([n,c])=>({n:+n,c})).sort((a,b)=>b.c-a.c);
+  const hotCount = Math.round(redMax * PHI_C);
+  const hotReds = sortedReds.slice(0, hotCount).map(x=>x.n);
+  const coldReds = sortedReds.slice(-hotCount).map(x=>x.n);
+  const hotBlues = blueMax>0 ? sortedBlues.slice(0, Math.round(blueMax*PHI_C)).map(x=>x.n) : [];
+  const coldBlues = blueMax>0 ? sortedBlues.slice(-Math.round(blueMax*PHI_C)).map(x=>x.n) : [];
+
+  // 区间
+  const z1Max = Math.round(redMax * PHI_C);
+  const z2Max = Math.round(redMax * PHI);
+  const zoneCnt = [0,0,0];
+  const zoneNums = [
+    Array.from({length:z1Max},(_,i)=>i+1),
+    Array.from({length:z2Max-z1Max},(_,i)=>z1Max+i+1),
+    Array.from({length:redMax-z2Max},(_,i)=>z2Max+i+1)
+  ];
+  data.forEach(row=>getRedsFn(row).forEach(n=>{
+    if(n<=z1Max)zoneCnt[0]++;else if(n<=z2Max)zoneCnt[1]++;else zoneCnt[2]++;
+  }));
+
+  // 奇偶
+  let odd=0,even=0;
+  data.forEach(row=>getRedsFn(row).forEach(n=>{n%2===0?even++:odd++;}));
+  // v5.2：逐期奇数个数（供"数据驱动"策略按真实分布标定奇偶窗口）
+  const oddCounts = data.map(row=>getRedsFn(row).filter(n=>n%2===1).length);
+
+  // 和值分布
+  const sums = data.map(row=>getRedsFn(row).reduce((s,n)=>s+n,0));
+  const minS=Math.min(...sums), maxS=Math.max(...sums), avgS=sums.reduce((a,b)=>a+b,0)/sums.length;
+  let sumLow=0, sumMid=0, sumHigh=0;
+  const sLow = avgS*0.8, sHigh = avgS*1.2;
+  sums.forEach(s=>{ if(s<sLow)sumLow++; else if(s>sHigh)sumHigh++; else sumMid++; });
+
+  // 近期热号（分层：近3期 / 近5期 / 近10期，smart优化用）
+  const recentData = data.slice(-15);
+  const recentCnt = {};
+  recentData.forEach((row,i)=>{const w=(i+1)*2; getRedsFn(row).forEach(n=>{recentCnt[n]=(recentCnt[n]||0)+w;});});
+  const recHot = Object.entries(recentCnt).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>+x[0]);
+  // v4.1 新增：近10期逐号频率（短期过热降权用：近10期≥4次为透支热号）
+  const freq10 = {};
+  data.slice(0, Math.min(10, data.length)).forEach(row=>getRedsFn(row).forEach(n=>{freq10[n]=(freq10[n]||0)+1;}));
+  // 近3期热号（极高权重）
+  const rec3Set = new Set();
+  data.slice(0,3).forEach(row=>getRedsFn(row).forEach(n=>rec3Set.add(n)));
+  const recHot3 = [...rec3Set];
+  // 近5期热号（次高权重）
+  const rec5Set = new Set();
+  data.slice(0,5).forEach(row=>getRedsFn(row).forEach(n=>rec5Set.add(n)));
+  const recHot5 = [...rec5Set].filter(n=>!rec3Set.has(n));
+  // 近10期和值与跨度统计（用于smart生成约束）
+  const recentSums = data.slice(0, Math.min(10, data.length)).map(row=>getRedsFn(row).reduce((s,n)=>s+n,0));
+  const recentSpans = data.slice(0, Math.min(10, data.length)).map(row=>{const r=getRedsFn(row);return Math.max(...r)-Math.min(...r);});
+  const smartSumLow  = Math.round(recentSums.reduce((a,b)=>a+b,0)/recentSums.length * 0.78);
+  const smartSumHigh = Math.round(recentSums.reduce((a,b)=>a+b,0)/recentSums.length * 1.22);
+  const smartSpanLow  = Math.max(3, Math.round(recentSpans.reduce((a,b)=>a+b,0)/recentSpans.length * 0.65));
+  const smartSpanHigh = Math.round(recentSpans.reduce((a,b)=>a+b,0)/recentSpans.length * 1.35);
+
+  // AC值
+  const acVals = data.map(row=>calcAC(getRedsFn(row)));
+  const acCnt = {};
+  acVals.forEach(v=>{acCnt[v]=(acCnt[v]||0)+1;});
+  const avgAC = acVals.reduce((a,b)=>a+b,0)/acVals.length;
+  const commonAC = Object.entries(acCnt).sort((a,b)=>b[1]-a[1]).slice(0,3).filter(([,c])=>c>data.length*0.08).map(([v])=>+v);
+
+  // Ramanujan 池
+  const ramaScores = ramaPool(redMax);
+  const ramaPoolArr = [];
+  ramaScores.forEach(({n,s})=>{const w=Math.max(1,Math.round(s*20+2));for(let i=0;i<w;i++)ramaPoolArr.push(n);});
+
+  // Mandel 池
+  const mandelPoolArr = mandelPool(redMax, redCnt);
+
+  let result = {
+    redCnt, blueCnt, sortedReds, sortedBlues,
+    hotReds, coldReds, hotBlues, coldBlues,
+    zoneNums, zoneCnt, odd, even,
+    sums, sumLow, sumMid, sumHigh, avgS, minS, maxS,
+    recHot, recHot3, recHot5, freq10,
+    smartSumLow, smartSumHigh, smartSpanLow, smartSpanHigh,
+    acCnt, avgAC, commonAC, acVals, oddCounts,
+    ramaPool: ramaPoolArr, mandelPool: mandelPoolArr,
+    redMax, blueMax
+  };
+
+  // 双色球专有：遗漏值分析
+  if(!isQXC && redMax===33) {
+    result = {...result, ...analyzeSSQExtra(data)};
+  }
+
+  // 大乐透专有：遗漏值/连号/蓝球周期分析
+  if(!isQXC && redMax===35) {
+    result = {...result, ...analyzeDLTExtra(data)};
+  }
+
+  // 七星彩专有：位置频率、大小分布、逐位近3/5期数值
+  if(isQXC) {
+    const posFq = [];
+    for(let pos=0;pos<7;pos++){
+      const cnt={};
+      // v3.8: 特别号(pos6)范围0~14，前6位0~9
+      const maxD = pos===6 ? 14 : 9;
+      for(let d=0;d<=maxD;d++)cnt[d]=0;
+      data.forEach(row=>{const v=row[1][pos];if(v!==undefined)cnt[v]++;});
+      posFq.push(cnt);
+    }
+    let big=0,small=0;
+    data.forEach(row=>{row[1].forEach(d=>{d>=5?big++:small++;});});
+    // v2.5 新增：逐位近3期/近5期实际数值（精确分析用）
+    const posRec3=[],posRec5=[];
+    for(let pos=0;pos<7;pos++){
+      posRec3.push(data.slice(0,Math.min(3,data.length)).map(r=>r[1][pos]).filter(v=>v!==undefined));
+      posRec5.push(data.slice(0,Math.min(5,data.length)).map(r=>r[1][pos]).filter(v=>v!==undefined));
+    }
+    result.posFq = posFq;
+    result.bigSmall = {big, small};
+    result.posRec3 = posRec3;  // 各位近3期值
+    result.posRec5 = posRec5;  // 各位近5期值
+    // v4.8 新增：逐位完整历史序列（新->旧），供衰减频率与同位重号信号使用
+    const posSeq = [];
+    for(let pos=0;pos<7;pos++) posSeq.push(data.map(r=>r[1][pos]).filter(v=>v!==undefined));
+    result.posSeq = posSeq;
+  }
+
+  // v3.9 新增：012路(除3余数)与尾数频率统计（SSQ/DLT红球/蓝球/后区）
+  if(!isQXC) {
+    const road012 = [0,0,0];
+    data.forEach(row=>getRedsFn(row).forEach(n=>{if(n>=1&&n<=redMax) road012[n%3]++;}));
+    result.road012 = road012;
+    const tailFreq = {};
+    for(let n=1;n<=redMax;n++) tailFreq[n%10]=0;
+    data.forEach(row=>getRedsFn(row).forEach(n=>{if(n>=1&&n<=redMax) tailFreq[n%10]++;}));
+    result.tailFreq = tailFreq;
+    if(blueMax>0){
+      const blueRoad012 = [0,0,0];
+      const blueTailFreq = {};
+      for(let n=1;n<=blueMax;n++) blueTailFreq[n%10]=0;
+      data.forEach(row=>getBlueFn(row).forEach(n=>{if(n>=1&&n<=blueMax){ blueRoad012[n%3]++; blueTailFreq[n%10]++; }}));
+      result.blueRoad012 = blueRoad012;
+      result.blueTailFreq = blueTailFreq;
+    }
+  }
+
+  return result;
+}
+
+function analyzeSSQExtra(data) {
+  // 遗漏值
+  const n = 33, recent = 30;
+  const currentMissing = {}, avgMissing = {};
+  for(let num=1;num<=n;num++) currentMissing[num]=data.length;
+  data.forEach((row,idx)=>row[1].forEach(num=>{if(currentMissing[num]===data.length)currentMissing[num]=idx;}));
+  for(let num=1;num<=n;num++){
+    const idxs=[];
+    data.slice(0,recent).forEach((row,idx)=>{if(row[1].includes(num))idxs.push(idx);});
+    if(idxs.length>=2){const gaps=[];for(let i=1;i<idxs.length;i++)gaps.push(idxs[i]-idxs[i-1]);avgMissing[num]=gaps.reduce((a,b)=>a+b,0)/gaps.length;}
+    else avgMissing[num]=idxs.length===1?idxs[0]:recent;
+  }
+  const redOverdue = [];
+  for(let num=1;num<=n;num++){if(currentMissing[num]>=8)redOverdue.push(num);}
+
+  // 蓝球遗漏
+  const blueMissing = {current:{}, avg:{}};
+  for(let num=1;num<=16;num++) blueMissing.current[num]=data.length;
+  data.forEach((row,idx)=>{const b=row[2][0];if(blueMissing.current[b]===data.length)blueMissing.current[b]=idx;});
+  for(let num=1;num<=16;num++){
+    const idxs=[];
+    data.slice(0,recent).forEach((row,idx)=>{if(row[2][0]===num)idxs.push(idx);});
+    if(idxs.length>=2){const gaps=[];for(let i=1;i<idxs.length;i++)gaps.push(idxs[i]-idxs[i-1]);blueMissing.avg[num]=gaps.reduce((a,b)=>a+b,0)/gaps.length;}
+    else blueMissing.avg[num]=idxs.length===1?idxs[0]:recent;
+  }
+  const blueOverdue = [];
+  for(let num=1;num<=16;num++){if(blueMissing.current[num]>=10)blueOverdue.push(num);}
+
+  // 连号分析
+  let hasConsec=0;
+  const consecDist={};
+  data.slice(0,recent).forEach(row=>{
+    const reds=row[1].slice().sort((a,b)=>a-b);
+    let pairs=0;
+    for(let i=0;i<reds.length-1;i++){if(reds[i+1]-reds[i]===1)pairs++;}
+    if(pairs>0)hasConsec++;
+    consecDist[pairs]=(consecDist[pairs]||0)+1;
+  });
+
+  // 蓝球周期（近50期）
+  const blueList = data.slice(0,50).map(r=>r[2][0]);
+  let bOdd=0,bEven=0,bSmall=0,bBig=0;
+  blueList.forEach(b=>{b%2===1?bOdd++:bEven++;b<=8?bSmall++:bBig++;});
+  const bZ=[0,0,0];
+  blueList.forEach(b=>{if(b<=5)bZ[0]++;else if(b<=11)bZ[1]++;else bZ[2]++;});
+  let bRepeat=0;
+  for(let i=0;i<blueList.length-1;i++){if(blueList[i]===blueList[i+1])bRepeat++;}
+  const blueCycle={odd:bOdd,even:bEven,small:bSmall,big:bBig,zones:bZ,repeatRate:(bRepeat/(blueList.length-1)*100).toFixed(1),recent:blueList.slice(0,5)};
+
+  // 跨度和值（近30期）
+  const spans=data.slice(0,recent).map(r=>{const s=r[1].slice().sort((a,b)=>a-b);return s[s.length-1]-s[0];});
+  const sums2=data.slice(0,recent).map(r=>r[1].reduce((a,b)=>a+b,0));
+  const avgSpan=spans.reduce((a,b)=>a+b,0)/spans.length;
+
+  // v3.9 新增：冷热分层（热码遗漏0-3，温码4-9，冷码≥10）
+  const hotReds=[], warmReds=[], coldReds=[];
+  for(let num=1;num<=n;num++){
+    const miss=currentMissing[num]||0;
+    if(miss<=3)hotReds.push(num);
+    else if(miss<=9)warmReds.push(num);
+    else coldReds.push(num);
+  }
+  const hotBlues=[], warmBlues=[], coldBlues=[];
+  for(let num=1;num<=16;num++){
+    const miss=blueMissing.current[num]||0;
+    if(miss<=3)hotBlues.push(num);
+    else if(miss<=9)warmBlues.push(num);
+    else coldBlues.push(num);
+  }
+
+  return {currentMissing, avgMissing, redOverdue, blueMissing, blueOverdue, hasConsec, consecDist, blueCycle, avgSpan, spans, ssqSums:sums2, hotReds, warmReds, coldReds, hotBlues, warmBlues, coldBlues};
+}
+
+function analyzeDLTExtra(data) {
+  const n=35, m=12, recent=30;
+  const currentMissing={}, avgMissing={};
+  for(let num=1;num<=n;num++) currentMissing[num]=data.length;
+  data.forEach((row,idx)=>row[1].forEach(num=>{if(currentMissing[num]===data.length)currentMissing[num]=idx;}));
+  for(let num=1;num<=n;num++){
+    const idxs=[];data.slice(0,recent).forEach((row,idx)=>{if(row[1].includes(num))idxs.push(idx);});
+    avgMissing[num]=idxs.length>=2?idxs.slice(1).map((v,i)=>v-idxs[i]).reduce((a,b)=>a+b,0)/(idxs.length-1):(idxs.length===1?idxs[0]:recent);
+  }
+  const redOverdue=[];for(let num=1;num<=n;num++){if(currentMissing[num]>=10)redOverdue.push(num);}
+  const blueMissing={current:{},avg:{}};
+  for(let num=1;num<=m;num++) blueMissing.current[num]=data.length;
+  data.forEach((row,idx)=>{row[2].forEach(b=>{if(blueMissing.current[b]===data.length)blueMissing.current[b]=idx;});});
+  for(let num=1;num<=m;num++){
+    const idxs=[];data.slice(0,recent).forEach((row,idx)=>{if(row[2].includes(num))idxs.push(idx);});
+    blueMissing.avg[num]=idxs.length>=2?idxs.slice(1).map((v,i)=>v-idxs[i]).reduce((a,b)=>a+b,0)/(idxs.length-1):(idxs.length===1?idxs[0]:recent);
+  }
+  const blueOverdue=[];for(let num=1;num<=m;num++){if(blueMissing.current[num]>=8)blueOverdue.push(num);}
+  let hasConsec=0;const consecDist={};
+  data.slice(0,recent).forEach(row=>{const rs=row[1].slice().sort((a,b)=>a-b);let p=0;for(let i=0;i<rs.length-1;i++){if(rs[i+1]-rs[i]===1)p++;}if(p>0)hasConsec++;consecDist[p]=(consecDist[p]||0)+1;});
+  const blueList=[];data.slice(0,50).forEach(r=>r[2].forEach(b=>blueList.push(b)));
+  let bOdd=0,bEven=0,bSmall=0,bMid=0,bBig=0;
+  blueList.forEach(b=>{b%2===1?bOdd++:bEven++;b<=4?bSmall++:b<=8?bMid++:bBig++;});
+  let bRepeat=0;for(let i=0;i<blueList.length-1;i++){if(blueList[i]===blueList[i+1])bRepeat++;}
+  const blueCycle={odd:bOdd,even:bEven,small:bSmall,mid:bMid,big:bBig,zones:[bSmall,bMid,bBig],repeatRate:(bRepeat/Math.max(1,blueList.length-1)*100).toFixed(1),recent:blueList.slice(0,5)};
+  const spans=data.slice(0,recent).map(r=>{const s=r[1].slice().sort((a,b)=>a-b);return s[s.length-1]-s[0];});
+  const sums2=data.slice(0,recent).map(r=>r[1].reduce((a,b)=>a+b,0));
+  const avgSpan=spans.reduce((a,b)=>a+b,0)/spans.length;
+  // v3.9 新增：冷热分层（热码遗漏0-3，温码4-9，冷码≥10）
+  const hotReds=[], warmReds=[], coldReds=[];
+  for(let num=1;num<=n;num++){
+    const miss=currentMissing[num]||0;
+    if(miss<=3)hotReds.push(num);
+    else if(miss<=9)warmReds.push(num);
+    else coldReds.push(num);
+  }
+  const hotBlues=[], warmBlues=[], coldBlues=[];
+  for(let num=1;num<=m;num++){
+    const miss=blueMissing.current[num]||0;
+    if(miss<=3)hotBlues.push(num);
+    else if(miss<=9)warmBlues.push(num);
+    else coldBlues.push(num);
+  }
+  return{currentMissing,avgMissing,redOverdue,blueMissing,blueOverdue,hasConsec,consecDist,blueCycle,avgSpan,spans,dltSums:sums2,hotReds,warmReds,coldReds,hotBlues,warmBlues,coldBlues};
+}
+
+// =========================================================
+//  号码生成
+// =========================================================
+// ══ v4.0 公共趋势评分器（合并 SSQ/DLT smart/contrast 四处重复逻辑）══
+// 红球趋势评分：012路 + 冷热分层 + 尾数趋势（近30期实测校准）
+// 实测(2026-07-24)：SSQ 012路 32.8%/36.7%/30.6%（1路偏热）
+//                  DLT 012路 33.3%/37.3%/29.3%（1路偏热，2路偏冷）
+
+// v4.3 提取：012路红球评分（trendScore 和 contrast 策略共用，消除4处重复）
+function road012Score(n, p) {
+  if(!p.road012) return 0;
+  const total = p.road012[0] + p.road012[1] + p.road012[2];
+  if(total <= 0) return 0;
+  const ratio = p.road012[n % 3] / total;
+  if(ratio > 0.40) return 4;           // 热路延续
+  if(ratio < 0.28) return 5;           // 冷路回补
+  return 0;
+}
+
+function trendScore(n, p) {
+  let score = 0;
+  // 012路走势修正（v4.3 提取为公共函数 road012Score）
+  score += road012Score(n, p);
+  // 冷热分层（温码为主，热码保留，冷码 overdue 回补）
+  if(p.warmReds && p.warmReds.includes(n)) score+=6;
+  if(p.coldReds && p.coldReds.includes(n) && p.currentMissing && p.currentMissing[n]>=10) score+=10;
+  if(p.hotReds && p.hotReds.includes(n)) score+=2;
+  // 尾数趋势（热尾延续，冷尾回补）
+  if(p.tailFreq){
+    const tail=n%10;
+    const tailTotal=Object.values(p.tailFreq).reduce((a,b)=>a+b,0);
+    if(tailTotal>0){
+      const tr=p.tailFreq[tail]/tailTotal;
+      if(tr>0.14) score+=3;
+      else if(tr<0.08) score+=4;
+    }
+  }
+  // v4.4 回测驱动：短期过热降权力度减半（原-6过重，热号有延续性）
+  if(p.freq10 && (p.freq10[n]||0)>=4) score-=3;
+  // v4.4 回测驱动：极冷降权力度减半（原-8过重，遗漏回补是有效信号）
+  if(p.currentMissing && (p.currentMissing[n]||0)>25) score-=4;
+  return score;
+}
+
+// 蓝球/后区趋势评分：012路 + 冷热分层（合并 SSQ/DLT 蓝球重复逻辑）
+// 实测：SSQ蓝球奇56.7%；DLT后区2/11各7次仍最热、一奇一偶53.3%
+function blueTrendScore(n, p, missThreshold) {
+  let score = 0;
+  // 冷热分层（温码为主，热码轻微降权，冷码回补）
+  if(p.warmBlues && p.warmBlues.includes(n)) score+=3;
+  if(p.coldBlues && p.coldBlues.includes(n) && p.blueMissing?.current && p.blueMissing.current[n]>=missThreshold) score+=5;
+  if(p.hotBlues && p.hotBlues.includes(n)) score-=1;
+  // 012路趋势（需趋势明显才触发）
+  if(p.blueRoad012){
+    const total=p.blueRoad012[0]+p.blueRoad012[1]+p.blueRoad012[2];
+    const r012=n%3;
+    if(total>0 && p.blueRoad012[r012]/total > 0.40) score+=3;
+    else if(total>0 && p.blueRoad012[r012]/total < 0.24) score-=2;
+  }
+  return score;
+}
+
+// v4.0 动态过热降权：近50期出现次数 top 且 count≥阈值 的号码降权（替代硬编码29/11/13）
+// 实测(近30期)：SSQ热号24/28各9次、1/7/16/29各8次；DLT前区13/26各8次、21为7次
+function overhotPenalty(n, p, topK, minCnt) {
+  if(!p.sortedReds) return 0;
+  const top = p.sortedReds.slice(0, topK);
+  const hit = top.find(x=>x.n===n);
+  return (hit && hit.c>=minCnt) ? Math.min(8, hit.c) : 0;
+}
+
+// v4.2 动态后区过热降权：基于 sortedBlues 频率 top 且 count≥阈值 的号码降权
+// 替代 v3.9 硬编码 11/2 降权（实测：11已降至5次不再过热，7/12升至7次为新热号）
+function blueOverhotPenalty(n, p, topK, minCnt) {
+  if(!p.sortedBlues) return 0;
+  const top = p.sortedBlues.slice(0, topK);
+  const hit = top.find(x=>x.n===n);
+  return (hit && hit.c>=minCnt) ? Math.min(6, hit.c-minCnt+3) : 0;
+}
+
+// =========================================================
+//  数据驱动策略 v5.4（结构塑形抽样器）：真实分布自标定 + 严格均匀基线
+//
+//  ── v5.4 决策依据（1200期全历史边际分析 + 同构合成对照 + 40轮×121期逐期配对实测）
+//    ① 数学恒等式：E[命中数] = Σ_x π(x)·q(x)
+//       π(x)=真实开奖中x 出现的概率，q(x)=策略选中x 的概率。
+//       实测 π 与均匀分布不可区分（SSQ χ²z=+1.69 / DLT z=+1.49 / QXC 各位置 |z|<1.2，
+//       单号码最大|z|=2.78，33个号码多重检验下属正常极值）
+//       ⇒ 当 π≡k/N 时，**任何** q 的期望命中恒为 k²/N：
+//         策略既不可能超越随机，也不可能低于随机。这条恒等式是本次结构调整的理论地基。
+//    ② 频率加权：样本内 Δ=+0.00086，样本外（用近端半数估 π 去预测远端半数）仅 +0.00013
+//       → 约 85% 为过拟合，不可用于选号 → **不采用**。
+//    ③ 遗漏回补加权：E=Σπq 实测 Δ=-0.00229（唯一方向一致为负的成分）→ **不采用**。
+//    ④ 结构塑形（和值/奇偶/AC/分区，按真实分布 P2~P98 自标定）：
+//       理论 Δ=+0.00003（中性）；实测 Δ=-0.0194±0.0186 (z=-1.04)、DLT z=-0.67、QXC z=+0.59
+//       → 与均匀基线**不可区分**，可安全保留；其价值在于让输出"形似真实开奖"
+//         （落在真实开奖的高密度形态区间），且不损失期望命中。
+//    ⑤ 修正 v5.3 的认知偏差：旧回测曾得出"结构约束 z=-4.86"，经同构合成对照与逐期配对
+//       复测证实为 harness 缺陷造成的假象（旧 harness 中遗漏回补权重污染了包括
+//       "纯均匀"在内的全部变体）；真因是权重而非结构约束。
+//
+//  ── v5.4 结构：严格等概率无放回抽样（基线）+ 自标定 P2~P98 结构软约束（不满足则重抽）
+//     不含任何频率/遗漏/重号加权 ⇒ 期望命中不劣于随机基线（可证明），形态贴近真实开奖。
+// =========================================================
+function _pctl(arr, q) {
+  if (!arr || !arr.length) return null;
+  const a = arr.slice().sort((x, y) => x - y);
+  return a[Math.min(a.length - 1, Math.max(0, Math.floor(a.length * q)))];
+}
+
+// 依据当前开奖数据标定结构窗口（自标定：换数据/导入数据后自动跟随）
+//  ── v5.3 关键修正：窗口取 P2~P98 而非 P10~P90。
+//    数学事实：若开奖在所有号码组合上均匀分布，则 E[命中数] = k²/N 对任意预测集合都成立，
+//    任何结构约束都不会提高期望命中，反而会把"落在约束带外"的真实开奖排除在外 → 期望命中下降。
+//    故约束带必须尽量覆盖真实开奖的完整分布（P2~P98 仅排除约4%的极端形态），
+//    既保留"形态像真实开奖"的可读性，又不损失期望命中。
+function _calibrate(p, zoneLo, qLo, qHi) {
+  const lo = qLo == null ? 0.02 : qLo, hi = qHi == null ? 0.98 : qHi;
+  const sums = p.sums || [], acs = p.acVals || [], odds = p.oddCounts || [];
+  return {
+    sumLo: _pctl(sums, lo), sumHi: _pctl(sums, hi),
+    acLo: _pctl(acs, lo),  acHi: _pctl(acs, hi),
+    oddLo: _pctl(odds, lo), oddHi: _pctl(odds, hi),
+    zoneLo: zoneLo == null ? 2 : zoneLo
+  };
+}
+
+// v5.4：严格等概率无放回抽样（Fisher-Yates）
+// 与"等权加权抽样"数学等价，但显式实现以保证基线严格均匀，
+// 从而"期望命中不劣于随机基线"成为可证明的性质而非经验观察。
+function _uniformSampleDistinct(nums, k) {
+  const a = nums.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a.slice(0, k);
+}
+
+// 旧版加权抽样器（v5.1~v5.3 使用，保留供历史对比；v5.4 主路径不再调用）
+function _weightedSampleDistinct(nums, weights, k) {
+  const pool = nums.map((n, i) => ({ n, w: Math.max(0, weights[i] || 0) }));
+  const picked = [];
+  for (let t = 0; t < k && pool.length; t++) {
+    const total = pool.reduce((s, x) => s + x.w, 0);
+    let idx;
+    if (total <= 0) {
+      idx = Math.floor(Math.random() * pool.length);
+    } else {
+      const r = Math.random() * total;
+      let acc = 0; idx = pool.length - 1;
+      for (let i = 0; i < pool.length; i++) { acc += pool[i].w; if (r <= acc) { idx = i; break; } }
+    }
+    picked.push(pool.splice(idx, 1)[0].n);
+  }
+  return picked;
+}
+
+// v5.4 结构塑形违规项计数（SSQ/DLT 共用，统一「先放宽最次要约束」逻辑）
+// flags: {sum, odd, ac}；zoneFn 为分区映射（无分区约束时传 null）
+function _shapeViolations(cal, pick, flags, zoneFn) {
+  let v = 0;
+  const sum = pick.reduce((s, n) => s + n, 0);
+  const odd = pick.filter(n => n % 2 === 1).length;
+  const ac  = calcAC(pick);
+  if (flags.sum && cal.sumLo != null && (sum < cal.sumLo || sum > cal.sumHi)) v++;
+  if (flags.odd && cal.oddLo != null && (odd < cal.oddLo || odd > cal.oddHi)) v++;
+  if (flags.ac  && cal.acLo  != null && (ac  < cal.acLo  || ac  > cal.acHi))  v++;
+  if (zoneFn && new Set(pick.map(zoneFn)).size < cal.zoneLo) v++;
+  return v;
+}
+
+function dataGenSSQ(p, opt) {
+  opt = opt || {};
+  const useSum = opt.sum !== false, useOdd = opt.odd !== false, useAC = opt.ac !== false;
+  const cal = _calibrate(p, opt.zone === false ? 0 : 2);
+  // v5.4 严格均匀基线：不做任何频率/遗漏/重号加权（全历史边际分析证明这些特征无预测力）
+  const nums = Array.from({ length: 33 }, (_, i) => i + 1);
+  const z = n => n <= 11 ? 0 : n <= 22 ? 1 : 2;
+  // 违反项计数：按"先放宽最次要约束"的顺序逐级放宽，保证始终输出合法号码
+  const violations = (pick) => _shapeViolations(cal, pick, { sum: useSum, odd: useOdd, ac: useAC }, z);
+  let reds = null;
+  for (let allow = 0; allow <= 3 && !reds; allow++) {
+    for (let t = 0; t < 40 && !reds; t++) {
+      const pick = _uniformSampleDistinct(nums, 6).sort((a, b) => a - b);
+      if (violations(pick) <= allow) reds = pick;
+    }
+  }
+  if (!reds) reds = _uniformSampleDistinct(nums, 6).sort((a, b) => a - b);
+  // 蓝球：严格均匀（蓝球频次/遗漏均无预测力）
+  const blue = _uniformSampleDistinct(Array.from({ length: 16 }, (_, i) => i + 1), 1);
+  return { reds, blues: [blue[0]], ac: calcAC(reds), sum: reds.reduce((a, b) => a + b, 0), span: Math.max(...reds) - Math.min(...reds) };
+}
+
+function dataGenDLT(p, opt) {
+  opt = opt || {};
+  const useSum = opt.sum !== false, useOdd = opt.odd !== false, useAC = opt.ac !== false;
+  const cal = _calibrate(p, opt.zone === false ? 0 : 2);
+  // v5.4 严格均匀基线
+  const nums = Array.from({ length: 35 }, (_, i) => i + 1);
+  const z = n => n <= 7 ? 0 : n <= 14 ? 1 : n <= 21 ? 2 : n <= 28 ? 3 : 4;
+  const violations = (pick) => _shapeViolations(cal, pick, { sum: useSum, odd: useOdd, ac: useAC }, z);
+  let front = null;
+  for (let allow = 0; allow <= 3 && !front; allow++) {
+    for (let t = 0; t < 40 && !front; t++) {
+      const pick = _uniformSampleDistinct(nums, 5).sort((a, b) => a - b);
+      if (violations(pick) <= allow) front = pick;
+    }
+  }
+  if (!front) front = _uniformSampleDistinct(nums, 5).sort((a, b) => a - b);
+  // 后区：严格均匀
+  const back = _uniformSampleDistinct(Array.from({ length: 12 }, (_, i) => i + 1), 2).sort((a, b) => a - b);
+  return { reds: front, blues: back, ac: calcAC(front), sum: front.reduce((a, b) => a + b, 0), span: Math.max(...front) - Math.min(...front) };
+}
+
+function dataGenQXC(p, opt) {
+  opt = opt || {};
+  const useSum = opt.sum !== false, useOdd = opt.odd !== false;
+  const cal = _calibrate(p, 0);
+  // 逐位严格均匀基线（逐位频率与同位重号全历史实测≈0σ，特别号边际 χ²z=+0.42，无信号）
+  const pickPos = (pos) => {
+    const maxD = pos === 6 ? 14 : 9;
+    return _uniformSampleDistinct(Array.from({ length: maxD + 1 }, (_, i) => i), 1)[0];
+  };
+  // 和值/奇偶软约束（按真实分布 P2~P98 自标定），不满足则重抽
+  let fallback = null;
+  for (let t = 0; t < 60; t++) {
+    const cand = Array.from({ length: 7 }, (_, pos) => pickPos(pos));
+    const sum = cand.reduce((s, n) => s + n, 0);
+    const odd = cand.filter(n => n % 2 === 1).length;
+    const sumOk = !useSum || cal.sumLo == null || (sum >= cal.sumLo && sum <= cal.sumHi);
+    const oddOk = !useOdd || cal.oddLo == null || (odd >= cal.oddLo && odd <= cal.oddHi);
+    if (sumOk && oddOk) return { nums: cand, ac: calcAC(cand.slice(0, 6)) };
+    if (!fallback) fallback = cand;
+  }
+  return { nums: fallback, ac: calcAC(fallback.slice(0, 6)) };
+}
+
+function genSSQ(p, strategy) {
+  if(strategy==='data') return dataGenSSQ(p);
+  // v4.8：上期红球集合（同位/同号重现信号，实测均值1.18 > 随机基线1.09）
+  const prevRedsSSQ = (typeof SSQ_DATA!=='undefined' && SSQ_DATA[0]) ? (SSQ_DATA[0][1]||[]) : [];
+  let redPool=[], bluePool=[];
+  if(strategy==='smart'){
+    // ══ 综合智能 v3.0：SSQ全面升级（好评策略深度整合）══
+    // 核心改进：
+    //   ① 三区强制均衡：历史91.3%覆盖全3区，强制三区各取>=1
+    //   ② 分层走势加权：近3/5/10期递减权重，体现趋势惯性
+    //   ③ 动态遗漏防垄断：遗漏上限=avg×3，避免冷号独占
+    //   ④ 和值动态约束：基于近10期统计 ±25% 范围
+    //   ⑤ 奇偶软约束精化：3:3/2:4/4:2三种比例都允许
+    redPool=[];
+    const ssqAvgS = p.avgS || 100;
+    for(let n=1;n<=33;n++){
+      let score=0;
+      // 1. 全期频率（基础权重×3）
+      const fr=p.sortedReds.findIndex(x=>x.n===n);
+      score+=(33-fr)*3;
+      // 2. v3.0 遗漏防垄断：上限收紧为 avg×3（防冷号压制热号）
+      if(p.currentMissing){
+        const miss=p.currentMissing[n]||0;
+        const avg=Math.max(3, p.avgMissing?.[n]||5);
+        const missCap=avg*3;  // v3.0：收紧上限
+        const missScore=Math.min(miss*2.5, missCap);
+        if(miss>=10)score+=missScore+12;            // 全遗漏：+12分特别奖励
+        else if(miss>avg*2.0)score+=missScore*1.1;
+        else if(miss>avg*1.5)score+=missScore;
+        else if(miss>avg)score+=missScore*0.7;
+        else score+=Math.max(0,avg-miss)*0.3;       // 近期出现：小幅降分
+      }
+      // 3. v3.0 分层走势加权（近3/5/10期递减）
+      const rec3w = (p.recHot3&&p.recHot3.includes(n)) ? 30 : 0;
+      const rec5w = (!rec3w && p.recHot5&&p.recHot5.includes(n)) ? 14 : 0;
+      // 近10期热号（额外补充）
+      const rec10w = (!rec3w && !rec5w && p.recHot&&p.recHot.includes(n)) ? 8 : 0;
+      score += rec3w + rec5w + rec10w;
+      // 4. v3.0 逐位区间加成（均值：3.9/8.6/12.6/20.6/24.6/30.1）
+      if(n>=1&&n<=8)score+=9;        // 第1位高频区（均值3.9）
+      if(n>=6&&n<=13)score+=8;       // 第2位高频区（均值8.6）
+      if(n>=10&&n<=17)score+=6;      // 第3位高频区（均值12.6）
+      if(n>=17&&n<=24)score+=6;      // 第4位高频区（均值20.6）
+      if(n>=22&&n<=28)score+=5;      // 第5位高频区（均值24.6）
+      if(n>=27&&n<=33)score+=8;      // 第6位高频区（均值30.1）
+      // v4.0：012路+冷热分层+尾数趋势（公共评分器合并）
+      score += trendScore(n, p);
+      // 5. v4.0：动态过热降权（替代硬编码29/11）+ Rama权重
+      const ohPenalty = overhotPenalty(n, p, 6, 8);
+      const rs=ramaScore(n);
+      score += rs*4 - ohPenalty;
+      // 6. v4.8：上期重号信号（250期实测 与上期重号数 1.18，随机基线 6*6/33=1.09，+8%）
+      if(prevRedsSSQ.includes(n)) score += 12;
+      for(let i=0;i<Math.max(1,Math.round(score));i++)redPool.push(n);
+    }
+    bluePool=[];
+    for(let n=1;n<=16;n++){
+      let bs=0;
+      const fr=p.sortedBlues.findIndex(x=>x.n===n);
+      bs+=(16-fr)*3;
+      // v3.0：遗漏强推 + 周期奇偶修正
+      if(p.blueMissing?.current){
+        const bm=p.blueMissing.current[n]||0;
+        const ba=Math.max(4, p.blueMissing.avg?.[n]||8);
+        if(bm>=10)bs+=28;              // 全遗漏>=10期：大力强推
+        else if(bm>ba*2)bs+=Math.min(bm*1.5,ba*4)+12;
+        else if(bm>ba*1.5)bs+=Math.min(bm*1.5,ba*3)+6;
+        else if(bm===0)bs-=5;          // 刚出现：小幅降权
+      }
+      if(p.blueCycle){
+        // v3.9：蓝球奇偶/大小趋势修正（需趋势明显才触发）
+        if(p.blueCycle.odd>p.blueCycle.even*1.15&&n%2===1)bs+=4;
+        else if(p.blueCycle.even>p.blueCycle.odd*1.15&&n%2===0)bs+=4;
+        // v4.8 修正：v4.7 依据 28 期样本（小号 22/28=79%）加了 +8/-3 强小号偏向，
+        //   但 250 期实测蓝球小号(<=8) 仅 53.2%、奇数 52.0%，均 ≈ 50% 基线 → 该偏向系小样本噪声
+        //   改为弱修正（±2），保留趋势跟随但不再系统性扭曲分布
+        if(p.blueCycle.small>p.blueCycle.big*1.15){
+          if(n<=8)bs+=2;
+        }else if(p.blueCycle.big>p.blueCycle.small*1.15){
+          if(n>8)bs+=2;
+        }
+      }
+      // v4.4 回测驱动：蓝球简化（原blueTrendScore+复杂修正≈随机，回归频率+遗漏+邻号）
+      // 频率排名权重加强
+      bs += (16-fr)*2;  // 额外频率加成
+      // v4.1 新增（网上策略）：蓝球邻号跟随（上期蓝球±1出现概率高）
+      const lastBlueS = SSQ_DATA[0]?.[2]?.[0]||0;
+      if(lastBlueS>0 && Math.abs(n-lastBlueS)===1) bs+=8;
+      for(let i=0;i<Math.max(1,Math.round(bs));i++)bluePool.push(n);
+    }
+  }else{
+    // 防御性兜底：未知策略名回退到全期频率加权
+    redPool=weightedPool(p.sortedReds.map(x=>x.n),n=>{const r=p.sortedReds.find(x=>x.n===n);return r?Math.min(r.c/5,1):0.1;},100);
+    bluePool=weightedPool(p.sortedBlues.map(x=>x.n),n=>{const r=p.sortedBlues.find(x=>x.n===n);return r?Math.min(r.c/5,1):0.1;},50);
+  }
+  // ══ v3.0/v3.2 SSQ 生成约束（多维约束串联）══
+  // 动态和值：smart 用动态，兜底用宽松
+  const useDynSum = (strategy==='smart');
+  const ssqSumLo = useDynSum ? Math.round((p.avgS||100)*0.77) : (p.smartSumLow||70);
+  const ssqSumHi = useDynSum ? Math.round((p.avgS||100)*1.30) : (p.smartSumHigh||140);
+  // AC跨度策略的额外约束
+  const useACSpan = false;
+  const acLo = useACSpan ? 5 : 3;
+  const acHi = useACSpan ? 10 : 99;
+  const spanLo = useACSpan ? 15 : 0;
+  const spanHi = useACSpan ? 32 : 99;
+  // 重号策略：前120次强制至少1个重号
+  const lastRedsSet = null;
+  // v4.4 回测驱动：smart添加AC软约束（acspan是SSQ最佳策略，AC约束有效）
+  // v4.8：250期实测 SSQ 前区AC mean=7.37 / p10=5 / p90=9 → 阈值 4 → 5
+  const useSmartAC = (strategy==='smart');
+  const smartACLo = useSmartAC ? 5 : 0;
+  // v4.1 新增（网上策略）：首尾和约束（龙头+凤尾核心区21~40，近2期趋势反向修正）
+  // 实测：连续2期低于34→下期侧重34以上；连续2期高于38→下期侧重34以下
+  let htLo=21, htHi=40;
+  if(strategy==='smart' && SSQ_DATA.length>=2){
+    const ht1=Math.min(...SSQ_DATA[0][1])+Math.max(...SSQ_DATA[0][1]);
+    const ht2=Math.min(...SSQ_DATA[1][1])+Math.max(...SSQ_DATA[1][1]);
+    if(ht1<34&&ht2<34){ htLo=34; htHi=48; }       // 连续低→侧重高位
+    else if(ht1>38&&ht2>38){ htLo=14; htHi=34; }  // 连续高→侧重低位
+  }
+  const useHT = (strategy==='smart');
+  for(let t=0;t<250;t++){
+    const reds=sampleN([...new Set(redPool)],6).sort((a,b)=>a-b);
+    const blues=[sampleN([...new Set(bluePool)],1)[0]];
+    const ac=calcAC(reds);
+    const s=reds.reduce((a,b)=>a+b,0);
+    const sp=Math.max(...reds)-Math.min(...reds);
+    // 和值约束（动态）
+    const sumOk = (s>=ssqSumLo && s<=ssqSumHi);
+    // v4.4 回测驱动：首尾和窗口缩短（原100→50，减少过度约束）
+    const ht = reds[0]+reds[5];
+    const htOk = !useHT || t>=50 || (ht>=htLo && ht<=htHi);
+    // v4.4 回测驱动：三区窗口缩短（原150→80，减少过度约束）
+    const zoneOk = t<80 ? (
+      reds.some(n=>n<=11) && reds.some(n=>n>=12&&n<=22) && reds.some(n=>n>=23)
+    ) : true;
+    // v4.8：移除强制连号约束。250期实测连号率 64.0%，而 6/33 随机基线为 65.98%
+    //   （1 - C(28,6)/C(33,6)）→ 连号并非有效信号，强制约束只会扭曲分布
+    const consecOk = true;
+    // v4.4 回测驱动：奇偶窗口缩短（原160→100）
+    const oddCnt=reds.filter(n=>n%2===1).length;
+    const oddOk = t<100 ? (oddCnt>=2&&oddCnt<=4) : true;
+    // v4.4 回测驱动：smart AC软约束（前80次AC≥4，近30期AC min=4 p10=6）
+    const smartACOk = !useSmartAC || t>=80 || ac>=smartACLo;
+    // v3.2 AC值约束（acspan策略）
+    const acOk = (ac>=acLo && ac<=acHi);
+    // v3.2 跨度约束（acspan策略）
+    const spanOk = (sp>=spanLo && sp<=spanHi);
+    // v3.2 重号约束（repeat策略：前120次至少1个重号）
+    const repeatOk = !lastRedsSet || t>=120 || reds.some(n=>lastRedsSet.has(n));
+    if((p.commonAC.length===0||p.commonAC.includes(ac)||ac>=3)&&sumOk&&zoneOk&&consecOk&&oddOk&&acOk&&spanOk&&repeatOk&&htOk&&smartACOk){
+      return{reds,blues,ac,sum:s,span:sp};
+    }
+  }
+  const reds=sampleN([...new Set(redPool)],6).sort((a,b)=>a-b);
+  const blues=[sampleN([...new Set(bluePool)],1)[0]];
+  return{reds,blues,ac:calcAC(reds),sum:reds.reduce((a,b)=>a+b,0),span:Math.max(...reds)-Math.min(...reds)};
+}
+
+function genDLT(p, strategy) {
+  if(strategy==='data') return dataGenDLT(p);
+  let redPool=[], bluePool=[];
+  if(strategy==='smart'){
+    // ══ 综合智能 v3.0：DLT全面升级（好评策略深度整合）══
+    // 核心改进：
+    //   ① 分层走势加权：近3/5/10期递减（惯性强化）
+    //   ② 遗漏防垄断：上限收紧为avg×3，平衡冷热号
+    //   ③ 动态和值约束：基于近10期avg±27%（91.8→[67,117]）
+    //   ④ 后区奇偶均衡：奇偶比1:1历史最优，加强
+    //   ⑤ 重号覆盖分析：近2期出现号码适当降权
+    redPool=[];
+    for(let n=1;n<=35;n++){
+      let score=0;
+      const fr=p.sortedReds.findIndex(x=>x.n===n);score+=(35-fr)*3;
+      if(p.currentMissing){
+        const miss=p.currentMissing[n]||0;
+        const avg=Math.max(3, p.avgMissing?.[n]||6);
+        const missCap=avg*3;  // v3.0：防垄断收紧
+        const missScore=Math.min(miss*2.5, missCap);
+        if(miss>=10)score+=missScore+15;         // 全遗漏+15特别加成
+        else if(miss>avg*2.0)score+=missScore*1.1;
+        else if(miss>avg*1.5)score+=missScore;
+        else if(miss>avg)score+=missScore*0.7;
+        else score+=Math.max(0,avg-miss)*0.3;
+      }
+      // v3.0 分层走势加权
+      const drec3w = (p.recHot3&&p.recHot3.includes(n)) ? 28 : 0;
+      const drec5w = (!drec3w && p.recHot5&&p.recHot5.includes(n)) ? 13 : 0;
+      const drec10w = (!drec3w && !drec5w && p.recHot&&p.recHot.includes(n)) ? 7 : 0;
+      score += drec3w + drec5w + drec10w;
+      // v3.0：逐位区间加成（均值[6.3,12.0,17.5,24.6,31.4]）
+      if(n>=2&&n<=10)score+=9;        // 第1位区间（均值6.3）
+      if(n>=9&&n<=16)score+=7;        // 第2位区间（均值12.0）
+      if(n>=14&&n<=21)score+=7;       // 第3位区间（均值17.5）
+      if(n>=21&&n<=28)score+=7;       // 第4位区间（均值24.6）
+      if(n>=27&&n<=35)score+=9;       // 第5位区间（均值31.4）
+      // v4.0：012路+冷热分层+尾数趋势（公共评分器合并）
+      score += trendScore(n, p);
+      // v4.0：动态过热降权（替代硬编码13号，DLT前区≥8次降权）+ Rama权重
+      const ohPenaltyD = overhotPenalty(n, p, 5, 8);
+      const rs=ramaScore(n);
+      score += rs*4 - ohPenaltyD;
+      for(let i=0;i<Math.max(1,Math.round(score));i++)redPool.push(n);
+    }
+    bluePool=[];
+    for(let n=1;n<=12;n++){
+      let bs=0;
+      const fr=p.sortedBlues.findIndex(x=>x.n===n);
+      bs+=(12-fr)*3;  // v4.7: 频率为主（近28期后区热号惯性明显，11/5/4/12/7/2均6~7次）
+      // v3.0：遗漏回补（v4.7温和化：1/3遗漏15/18期但热号惯性更强，防止过度回补）
+      if(p.blueMissing?.current){
+        const bm=p.blueMissing.current[n]||0;
+        const ba=Math.max(3, p.blueMissing.avg?.[n]||6);
+        if(bm>=10)bs+=20;              // 全遗漏：强推
+        else if(bm>=8)bs+=12;          // 长遗漏：中等推
+        else if(bm>ba*2.5)bs+=Math.min(bm*1.5,ba*4);
+        else if(bm>ba*1.5)bs+=Math.min(bm*1.5,ba*3);
+        else if(bm===0)bs-=4;          // 刚出现降权
+      }
+      // v3.9：后区奇偶均衡（历史一奇一偶约53%，趋势修正需明显才触发）
+      if(p.blueCycle){
+        if(p.blueCycle.odd>p.blueCycle.even*1.15&&n%2===1)bs+=4;
+        else if(p.blueCycle.even>p.blueCycle.odd*1.15&&n%2===0)bs+=4;
+        // 大小区均衡（1-4小/5-8中/9-12大）
+        if(p.blueCycle.small>p.blueCycle.mid*1.2&&n<=4)bs+=3;
+        else if(p.blueCycle.big>p.blueCycle.mid*1.2&&n>=9)bs+=3;
+      }
+      // v4.7 新增：后区012路修正（28期0路15次偏冷→回补，2路22次热）
+      if(p.blueRoad012){
+        const total=p.blueRoad012[0]+p.blueRoad012[1]+p.blueRoad012[2];
+        const r012=n%3;
+        if(total>0){
+          const ratio=p.blueRoad012[r012]/total;
+          if(ratio<0.28)bs+=6;       // 冷路回补
+          else if(ratio>0.42)bs+=2;  // 热路延续
+        }
+      }
+      // v4.1 新增（网上策略）：后区邻号跟随（上期后区±1）
+      const lastBluesD = DLT_DATA[0]?.[2]||[];
+      if(lastBluesD.some(lb=>Math.abs(n-lb)===1)) bs+=8;
+      if(bs<1) bs=1;
+      for(let i=0;i<Math.max(1,Math.round(bs));i++)bluePool.push(n);
+    }
+  }else{
+    // 防御性兜底：未知策略名回退到频率加权
+    redPool=weightedPool(p.sortedReds.map(x=>x.n),n=>{const r=p.sortedReds.find(x=>x.n===n);return r?Math.min(r.c/5,1):0.1;},100);
+    bluePool=[...Array(12)].map((_,i)=>i+1);
+  }
+  // ══ v3.0/v3.2 DLT 生成约束 ══
+  // 动态和值：smart 用动态，兜底用宽松
+  const useDynSumD = (strategy==='smart');
+  const dltSumLo = useDynSumD ? Math.round((p.avgS||92)*0.72) : (p.smartSumLow||65);
+  const dltSumHi = useDynSumD ? Math.round((p.avgS||92)*1.35) : (p.smartSumHigh||128);
+  // AC跨度策略额外约束
+  const useACSpanD = false;
+  // v4.8：250期实测 DLT 前区AC mean=5.02 / p10=4 / max=6 → 区间 [3,7] 收紧为 [4,6]
+  const acLoD = useACSpanD ? 4 : 2;
+  const acHiD = useACSpanD ? 6 : 99;
+  const spanLoD = useACSpanD ? 15 : 0;
+  const spanHiD = useACSpanD ? 30 : 99;
+  // 重号策略：前100次至少1个重号
+  const lastRedsSetD = null;
+  // v4.1 新增（网上策略）：DLT前区五区间分散（1-7/8-14/15-21/22-28/29-35，开奖通常覆盖3~4个区间）
+  const useZone5 = (strategy==='smart');
+  for(let t=0;t<250;t++){
+    const reds=sampleN([...new Set(redPool)],5).sort((a,b)=>a-b);
+    const blues=sampleN([...new Set(bluePool)],2).sort((a,b)=>a-b);
+    const ac=calcAC(reds);
+    const s=reds.reduce((a,b)=>a+b,0);
+    const sp=Math.max(...reds)-Math.min(...reds);
+    const sumOk = (s>=dltSumLo && s<=dltSumHi);
+    // v3.0：后区两球奇偶均衡（v4.7改概率强制；v4.8按250期实测 54.8% 校准，随机基线 2*C(6,1)*C(6,1)/C(12,2)=54.5%）
+    const blueOddCnt = blues.filter(b=>b%2===1).length;
+    const blueBalOk = Math.random()<0.55 ? blueOddCnt===1 : true;
+    // v4.1：后区一大一小均衡（1-6小/7-12大）
+    // v4.8：250期实测 60.8%，高于随机基线 54.5% 但远未达 v4.7 设定的 0.7 → 下调为 0.60
+    const blueBigCnt = blues.filter(b=>b>=7).length;
+    const blueSizeOk = Math.random()<0.60 ? blueBigCnt===1 : true;
+    // v4.1：前区五区间覆盖≥3（smart策略前120次）
+    let zone5Ok = true;
+    if(useZone5 && t<120){
+      const zset = new Set(reds.map(n=>Math.min(4, Math.floor((n-1)/7))));
+      zone5Ok = zset.size>=3;
+    }
+    // v3.2 AC值约束
+    const acOkD = (ac>=acLoD && ac<=acHiD);
+    // v3.2 跨度约束
+    const spanOkD = (sp>=spanLoD && sp<=spanHiD);
+    // v3.2 重号约束
+    const repeatOkD = !lastRedsSetD || t>=100 || reds.some(n=>lastRedsSetD.has(n));
+    if((p.commonAC.length===0||p.commonAC.includes(ac)||ac>=2)&&sumOk&&blueBalOk&&acOkD&&spanOkD&&repeatOkD&&blueSizeOk&&zone5Ok){
+      return{reds,blues,ac,sum:s,span:sp};
+    }
+  }
+  const reds=sampleN([...new Set(redPool)],5).sort((a,b)=>a-b);
+  const blues=sampleN([...new Set(bluePool)],2).sort((a,b)=>a-b);
+  return{reds,blues,ac:calcAC(reds),sum:reds.reduce((a,b)=>a+b,0),span:Math.max(...reds)-Math.min(...reds)};
+}
+
+function genQXC(p, strategy) {
+  if(strategy==='data') return dataGenQXC(p);
+  const nums=Array.from({length:7},(_,pos)=>{
+    // ══ 特别号(P7)专属：自相关走势模型（v3.6，基于自身历史序列，不借位置偏向常量）══
+    if(pos===6) return genQXCSpecial(strategy, p);
+    const pf=p.posFq[pos];
+    if(!pf)return Math.floor(Math.random()*10);
+    const sorted=Object.entries(pf).sort((a,b)=>b[1]-a[1]);
+    if(strategy==='smart'){
+      // ══ 综合智能 v4.9：300期滚动窗口 + 严格 walk-forward 双重验证重校准 ══
+      // 250 期回测逐项验证结论（沿用 v4.8）：
+      //   ① 上期同位重号 是唯一稳定有效信号
+      //      同位重号率 P1 13.2% / P2 10.8% / P3 9.2% / P4 11.6% / P5 10.4% / P6 10.0%（基线 10%）
+      //   ② 全量位置频率 ≈ 随机（freqFull 0.671 vs uniform 0.671）→ 改用近期衰减频率
+      //   ③ 近期衰减频率(0.9^i)略有效（0.696）→ 保留小权重
+      //   ④ 遗漏回补 有害（miss 0.637 < uniform 0.671）→ 移除原逐位遗漏补偿项
+      //   ⑤ 逐位大小/奇偶实测 46.8%~54.0%，全部 ≈ 50% 噪声
+      //      → v4.7 的 POS_BIAS / ODD_EVEN_BIAS 强偏向（P3 强大偏、P4 强小偏等）
+      //        系 30 期小样本噪声，大样本下全部清零（含 Rama 数论权重）
+      //   ⑥ 邻号率(|diff|<=1) 24.8%~31.6% ≈ 基线 30% → 无信号，不加成
+      //
+      // ⚠️ v4.8→v4.9 权重修正（35 → 60）：
+      //   v4.8 依据"固定三段"的最近 84 期判定信号失效，故取保守值 35。
+      //   v4.9 用两种更严格的方法复核，结论是 35 过于保守：
+      //   A) 滚动窗口（300期，窗口60/步长20，共10个窗口，REP=100）—— 各权重胜出窗口数：
+      //        权重20: 9/10 (+2.23%)   权重35: 8/10 (+3.31%)
+      //        权重60: 9/10 (+5.36%)   权重120: 9/10 (+6.29%)
+      //      且最近的 0~60 窗口同样有效（0.092 → 0.098），v4.8 所谓"信号消失"未复现。
+      //   B) 严格 walk-forward（用更早 60 期选权重、再在后续 50 期评估，无选择偏差）：
+      //        固定0 基线 / 固定35 -0.11% / 固定60 +3.01% / 固定120 +4.81% / 自适应 +1.65%
+      //      自适应（每期重选权重）仅 +1.65%，输给固定 120 → 证明"选权重"本身在拟合噪声，
+      //      因此不采用自适应，只取一个稳健的固定值。
+      //   取 60：收益接近 120（+5.4% vs +6.3%），但重号率约 50%（120 会达 67%，
+      //      输出会退化为上期号码的复制品，丧失推荐多样性）。
+      const REPEAT_W = 60;    // 上期同位重号权重（滚动验证 + walk-forward 双重确认）
+      const DECAY_K  = 6;     // 近期衰减频率系数
+      const seq = (p.posSeq && p.posSeq[pos]) || [];
+      const lastVal = seq.length>0 ? seq[0] : -1;
+      const pool=[];
+      for(let d=0;d<=9;d++){
+        // 1. 近期衰减频率：越近期出现权重越高（0.9^i，近 50 期）
+        let decayW=0;
+        for(let i=0;i<seq.length;i++){ if(seq[i]===d) decayW += Math.pow(0.9, i); }
+        // 2. 上期同位重号（核心信号）
+        const repW = (d===lastVal) ? REPEAT_W : 0;
+        const w=Math.max(1, Math.round(1 + decayW*DECAY_K + repW));
+        for(let i=0;i<w;i++)pool.push(d);
+      }
+      return pool[Math.floor(Math.random()*pool.length)];
+    }
+    // 防御性兜底：未知策略名走衰减频率 + 同位重号
+    const REPEAT_W_D = 60;
+    const seqD = (p.posSeq && p.posSeq[pos]) || [];
+    const lastD = seqD.length>0 ? seqD[0] : -1;
+    const poolD=[];
+    for(let d=0;d<=9;d++){
+      let decayD=0;
+      for(let i=0;i<seqD.length;i++){ if(seqD[i]===d) decayD += Math.pow(0.9, i); }
+      const ramaW = Math.round(ramaScore(d+1)*3);   // 数论凝聚身份特征
+      const repW  = (d===lastD) ? REPEAT_W_D : 0;
+      const w=Math.max(1, Math.round(1 + decayD*6 + ramaW + repW));
+      for(let i=0;i<w;i++)poolD.push(d);
+    }
+    return poolD[Math.floor(Math.random()*poolD.length)];
+  });
+  return{nums,ac:calcAC(nums.slice(0,6))};
+}
+
+// =========================================================
+//  七星彩特别号(P7) 自相关走势模型（v3.8 — 特别号范围0~14）
+//  v3.8 更新：七星彩规则特别号(第7位)范围 0~14（原0~9）
+//  基于特别号自身历史序列，不借用位置偏向常量(POS_BIAS/ODD_EVEN_BIAS)
+//  实测(50期,0~14)：重号率8.2%、邻号率14.3%(近15期28.6%)、
+//                   奇数46.0%(≈均衡)、小号(0~4)30.0%、12最热(8次/avg5.6)、10未出
+//  模型核心：遗漏周期轮动(主,回补) + 邻号延续(辅) + 频率加权(次)
+//  v3.8变更：范围0~14、奇偶偏向移除(46%奇≈均衡)、邻号上限14
+// =========================================================
+function genQXCSpecial(strategy, p) {
+  // ══ 特别号(P7) 同位重号权重 —— v5.0 扩大范围扫参后大幅上调（90 → 350）══
+  // v4.9 只在 [0,90] 范围扫参，得出"90 最优"的错误结论。
+  // v5.0 扩大扫描上界后，命中率随权重单调递增，远未饱和：
+  //     重号权重   0       90      150     250     350     500     800
+  //     命中率     0.0631  0.0702  0.0764  0.0791  0.0841  0.0837  0.0889
+  //     重号率     0%      ~28%    ~42%    ~52%    ~60%    ~67%    ~85%
+  //   理论上限：P7 实测重号率 9.6%（基线 6.67%，相对 +44%），
+  //     若 100% 选上期值则命中率 = 0.096，故曲线在 800 处(0.0889)仍在爬升。
+  //   取 350：命中 0.0841（+26% vs 基线），已接近 800 的 0.0889，
+  //     但重号率仅 ~60%，避免推荐号码退化为上期特别号的复制品。
+  //   （95% CI 下真实重号率为 [5.9%, 13.3%]，信号强度有不确定性，不宜走到极端）
+  const SP_REPEAT_W = 350;
+  const hist = (typeof QXC_DATA!=='undefined' && QXC_DATA) ? QXC_DATA.map(r=>r[1][6]) : []; // 新->旧
+  const last = hist.length>0 ? hist[0] : -1;
+  const SP_MAX = 14; // v3.8: 特别号范围 0~14
+  // 各数字在特别号序列中的遗漏期数（从最新往回数，未出现则记全长）
+  const miss = {};
+  for(let d=0;d<=SP_MAX;d++){
+    let m=0; for(let i=0;i<hist.length;i++){ if(hist[i]===d) break; m++; }
+    miss[d]=m;
+  }
+  // 各数字在特别号序列中的出现频次（自身历史）
+  const freq = {};
+  hist.forEach(v=>freq[v]=(freq[v]||0)+1);
+
+  // smart / 兜底：自相关综合模型（同位重号 + 弱遗漏 + 频率/大小/奇偶弱偏好）
+  const pool=[];
+  for(let d=0;d<=SP_MAX;d++){
+    const m=miss[d];
+    const missW = Math.min(m, 12) * 0.6;   // ③ 遗漏封顶下调（v4.9 扫参）
+    const freqW = (freq[d]||0)*3;
+    const repW  = (d===last) ? SP_REPEAT_W : 0;     // ① 同位重号（v5.0 扩范围扫参：90→350）
+    let szW=0, oeW=0;
+    if(d<=7) szW=2; else if(d>=11) szW=-1; // ④ 弱小号偏好
+    if(d%2===0) oeW=2; else oeW=-1;        // ④ 弱偶数偏好
+    const w=Math.max(1, Math.round(1 + missW+freqW+repW+szW+oeW));
+    for(let i=0;i<w;i++)pool.push(d);
+  }
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+// =========================================================
+//  渲染工具
+// =========================================================
+function mkBall(n, cls) { return `<div class="ball ${cls}">${String(n).padStart(2,'0')}</div>`; }
+function mkMini(n, cls) { return `<div class="mini-ball ${cls}">${String(n).padStart(2,'0')}</div>`; }
+
+function renderResult(r, idx, type) {
+  const label = `第 ${idx+1} 组 · ${STATE[type].lastStrategy}策略`;
+  let balls = '';
+  if(type==='ssq'){
+    r.reds.forEach(n=>balls+=mkBall(n,'red'));
+    balls+='<div class="ball-sep">|</div>';
+    r.blues.forEach(n=>balls+=mkBall(n,'blue'));
+  }else if(type==='dlt'){
+    r.reds.forEach(n=>balls+=mkBall(n,'red'));
+    balls+='<div class="ball-sep">|</div>';
+    r.blues.forEach(n=>balls+=mkBall(n,'blue'));
+  }else{
+    r.nums.slice(0,6).forEach(n=>balls+=mkBall(n,'qxc-base'));
+    balls+='<div class="ball-sep">|</div>';
+    balls+=mkBall(r.nums[6],'qxc-special');
+  }
+  const badges = type!=='qxc' ? `
+    <span class="meta-badge ac">AC=${r.ac}</span>
+    <span class="meta-badge sum">和值=${r.sum}</span>
+    <span class="meta-badge span">跨度=${r.span}</span>
+    ${r.cov?`<span class="meta-badge">覆盖=${r.cov}</span>`:''}
+  ` : `<span class="meta-badge ac">AC=${r.ac}</span>`;
+  return `
+  <div class="result-group">
+    <div class="result-meta">
+      <div class="result-group-label">${label}</div>
+      <div class="result-badges">${badges}</div>
+    </div>
+    <div class="balls-row">${balls}</div>
+  </div>`;
+}
+
+function renderFreq(sortedNums, maxBar, cls) {
+  const max = sortedNums[0]?.c || 1;
+  return sortedNums.slice(0,12).map(({n,c})=>`
+    <div class="freq-bar-row">
+      <div class="freq-label">${String(n).padStart(2,'0')}</div>
+      <div class="freq-bar ${cls}" style="width:${Math.round(c/max*maxBar)}px"></div>
+      <div class="freq-cnt">${c}次</div>
+    </div>`).join('');
+}
+
+function renderHotCold(p) {
+  return `
+  <div class="hot-cold-row">
+    <div class="hot-cold-box">
+      <h4>🔥 热门号码</h4>
+      <div class="balls-wrap">${p.hotReds.sort((a,b)=>a-b).map(n=>mkMini(n,'red')).join('')}</div>
+    </div>
+    <div class="hot-cold-box">
+      <h4>❄️ 冷门号码</h4>
+      <div class="balls-wrap">${p.coldReds.sort((a,b)=>a-b).map(n=>mkMini(n,'cold-red')).join('')}</div>
+    </div>
+  </div>`;
+}
+
+function renderZone(p) {
+  const total=p.zoneCnt.reduce((a,b)=>a+b,0)||1;
+  const pcts=p.zoneCnt.map(c=>(c/total*100).toFixed(1));
+  const colors=['#e74c3c','#f39c12','#27ae60'];
+  return `
+  <div class="zone-row">
+    ${[0,1,2].map(i=>`<div class="zone-seg" style="flex:${p.zoneCnt[i]};background:${colors[i]};">${pcts[i]}%</div>`).join('')}
+  </div>
+  <div style="display:flex;gap:12px;font-size:11px;color:var(--muted);">
+    <span>区间1(01-${p.zoneNums[0].length}) ${pcts[0]}%</span>
+    <span>区间2 ${pcts[1]}%</span>
+    <span>区间3 ${pcts[2]}%</span>
+  </div>`;
+}
+
+function renderOddEven(p) {
+  const tot=p.odd+p.even||1;
+  const op=(p.odd/tot*100).toFixed(1);
+  const ep=(p.even/tot*100).toFixed(1);
+  return `
+  <div class="pct-row"><span style="width:28px;font-size:11px;">奇</span><div class="pct-bar-wrap"><div class="pct-fill" style="width:${op}%"></div></div><span class="pct-num">${op}%</span></div>
+  <div class="pct-row"><span style="width:28px;font-size:11px;">偶</span><div class="pct-bar-wrap"><div class="pct-fill blue-fill" style="width:${ep}%"></div></div><span class="pct-num">${ep}%</span></div>`;
+}
+
+function renderSumDist(p) {
+  const tot=p.sumLow+p.sumMid+p.sumHigh||1;
+  return `
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">均值 ${p.avgS.toFixed(1)} | 范围 ${p.minS}-${p.maxS}</div>
+  ${[['低和值',p.sumLow,''],['中和值',p.sumMid,''],['高和值',p.sumHigh,'blue-fill']].map(([l,v,cls])=>`
+  <div class="pct-row">
+    <span style="width:38px;font-size:11px;">${l}</span>
+    <div class="pct-bar-wrap"><div class="pct-fill ${cls}" style="width:${(v/tot*100).toFixed(1)}%"></div></div>
+    <span class="pct-num">${(v/tot*100).toFixed(1)}%</span>
+  </div>`).join('')}`;
+}
+
+function renderLastPeriod(type) {
+  const data = type==='ssq'?SSQ_DATA:type==='dlt'?DLT_DATA:QXC_DATA;
+  const last = data[0];
+  if(type==='ssq'){
+    const ac=calcAC(last[1]);
+    const sum=last[1].reduce((a,b)=>a+b,0);
+    const s=last[1].slice().sort((a,b)=>a-b);
+    return `<div class="last-period-box">
+      <div class="last-period-label">期号：${last[0]} | AC值：${ac} | 和值：${sum} | 跨度：${s[s.length-1]-s[0]}</div>
+      <div class="balls-row">${last[1].map(n=>mkBall(n,'red')).join('')}<div class="ball-sep">|</div>${last[2].map(n=>mkBall(n,'blue')).join('')}</div>
+    </div>`;
+  }else if(type==='dlt'){
+    const sum2=last[1].reduce((a,b)=>a+b,0);
+    const s2=last[1].slice().sort((a,b)=>a-b);
+    return `<div class="last-period-box">
+      <div class="last-period-label">期号：${last[0]} | AC值：${calcAC(last[1])} | 和值：${sum2} | 跨度：${s2[s2.length-1]-s2[0]}</div>
+      <div class="balls-row">${last[1].map(n=>mkBall(n,'red')).join('')}<div class="ball-sep">|</div>${last[2].map(n=>mkBall(n,'blue')).join('')}</div>
+    </div>`;
+  }else{
+    return `<div class="last-period-box">
+      <div class="last-period-label">期号：${last[0]}</div>
+      <div class="balls-row">${last[1].slice(0,6).map(n=>mkBall(n,'qxc-base')).join('')}<div class="ball-sep">|</div>${mkBall(last[1][6],'qxc-special')}</div>
+    </div>`;
+  }
+}
+
+// =========================================================
+//  渲染统计面板
+// =========================================================
+function renderSSQStats(p) {
+  return `
+  <div class="stat-section"><h3>红球出现频率 Top 12</h3>${renderFreq(p.sortedReds, 180, '')}</div>
+  <div class="stat-section"><h3>蓝球出现频率</h3>${renderFreq(p.sortedBlues, 120, 'blue-bar')}</div>
+  <div class="stat-section"><h3>热冷号码</h3>${renderHotCold(p)}</div>
+  <div class="stat-section"><h3>近期热号（最近15期加权）</h3>
+    <div class="balls-wrap">${p.recHot.slice().sort((a,b)=>a-b).map(n=>mkMini(n,'red')).join('')}</div>
+  </div>
+  <div class="stat-section"><h3>区间分析（黄金分割）</h3>${renderZone(p)}</div>
+  <div class="stat-section"><h3>奇偶分布</h3>${renderOddEven(p)}</div>
+  <div class="stat-section"><h3>和值分布</h3>${renderSumDist(p)}</div>
+  <div class="stat-section"><h3>AC值分析</h3>
+    <div style="font-size:12px;color:var(--muted);">均值 ${p.avgAC.toFixed(2)} | 常见 ${p.commonAC.join(',')||'—'}</div>
+    ${Object.entries(p.acCnt).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([v,c])=>`
+      <div class="freq-bar-row">
+        <div class="freq-label" style="width:40px;">AC=${v}</div>
+        <div class="freq-bar" style="width:${Math.round(c/p.sortedReds[0].c*120)}px;background:#9b59b6;"></div>
+        <div class="freq-cnt">${c}次</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderSSQMissing(p) {
+  if(!p.currentMissing) return '<div style="color:var(--muted);font-size:12px;">暂无遗漏数据</div>';
+  const sorted = Object.entries(p.currentMissing).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxM = sorted[0]?.[1]||1;
+  return `
+  <div class="stat-section">
+    <h3>红球遗漏值 Top 10（越大说明越久未出现）</h3>
+    ${sorted.map(([n,m])=>{
+      const avg=(p.avgMissing?.[n]||5).toFixed(1);
+      return `<div class="missing-row">
+        <div class="missing-num">${String(n).padStart(2,'0')}</div>
+        <div class="missing-bar" style="width:${Math.round(m/maxM*160)}px"></div>
+        <div class="missing-cnt">遗漏${m}期 (均${avg})</div>
+      </div>`;
+    }).join('')}
+    ${p.redOverdue?.length>0?`<div style="margin-top:8px;font-size:11px;color:var(--muted);">⚡ 即将回补号码（遗漏≥8期）：</div>
+    <div class="tags-row">${p.redOverdue.sort((a,b)=>a-b).map(n=>`<span class="overdue-tag">${String(n).padStart(2,'0')}</span>`).join('')}</div>`:''}
+  </div>
+  <div class="stat-section">
+    <h3>蓝球遗漏值 Top 5</h3>
+    ${Object.entries(p.blueMissing?.current||{}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n,m])=>{
+      const avg=(p.blueMissing?.avg?.[n]||5).toFixed(1);
+      return `<div class="missing-row">
+        <div class="missing-num">${String(n).padStart(2,'0')}</div>
+        <div class="missing-bar" style="width:${Math.round(m/16*120)}px;background:linear-gradient(90deg,#3498db,#1a5276);"></div>
+        <div class="missing-cnt">遗漏${m}期 (均${avg})</div>
+      </div>`;
+    }).join('')}
+    ${p.blueOverdue?.length>0?`<div class="tags-row">${p.blueOverdue.map(n=>`<span class="overdue-tag" style="border-color:#3498db;color:#1a5276;">${String(n).padStart(2,'0')}</span>`).join('')}</div>`:''}
+  </div>`;
+}
+
+function renderSSQExtra(p) {
+  if(!p.hasConsec && p.hasConsec!==0) return '';
+  const total30 = Object.values(p.consecDist||{}).reduce((a,b)=>a+b,0)||1;
+  const bc = p.blueCycle||{};
+  return `
+  <div class="stat-section">
+    <h3>连号分析（近30期）</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">含连号期数：${p.hasConsec}/30（${(p.hasConsec/30*100).toFixed(0)}%）</div>
+    ${Object.entries(p.consecDist||{}).sort((a,b)=>+a[0]-+b[0]).map(([pairs,cnt])=>`
+      <div class="freq-bar-row">
+        <div class="freq-label" style="width:44px;font-size:10px;">${pairs}对连号</div>
+        <div class="freq-bar" style="width:${Math.round(cnt/total30*150)}px;background:#e67e22;"></div>
+        <div class="freq-cnt">${cnt}期</div>
+      </div>`).join('')}
+  </div>
+  <div class="stat-section">
+    <h3>蓝球周期分析（近50期）</h3>
+    <div class="blue-cycle-grid">
+      <div class="bc-item"><div class="bc-label">奇数</div><div class="bc-val">${bc.odd||0}</div></div>
+      <div class="bc-item"><div class="bc-label">偶数</div><div class="bc-val">${bc.even||0}</div></div>
+      <div class="bc-item"><div class="bc-label">重复率</div><div class="bc-val">${bc.repeatRate||0}%</div></div>
+      <div class="bc-item"><div class="bc-label">小数(1-8)</div><div class="bc-val">${bc.small||0}</div></div>
+      <div class="bc-item"><div class="bc-label">大数(9-16)</div><div class="bc-val">${bc.big||0}</div></div>
+      <div class="bc-item"><div class="bc-label">区间分布</div><div class="bc-val" style="font-size:11px;">${(bc.zones||[0,0,0]).join(' / ')}</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);">近5期蓝球：${(bc.recent||[]).map(n=>`<b style="color:#1e90ff;">${String(n).padStart(2,'0')}</b>`).join(' → ')}</div>
+  </div>
+  <div class="stat-section">
+    <h3>跨度和值分析（近30期）</h3>
+    <div style="font-size:12px;color:var(--muted);">平均跨度：${p.avgSpan?.toFixed(1)||'—'} | 跨度范围：${Math.min(...(p.spans||[0]))}~${Math.max(...(p.spans||[0]))}</div>
+    ${renderSumDist(p)}
+  </div>`;
+}
+
+function renderDLTMissing(p) {
+  if(!p.currentMissing) return '<div style="color:var(--muted);font-size:12px;">暂无遗漏数据</div>';
+  const sorted=Object.entries(p.currentMissing).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxM=sorted[0]?.[1]||1;
+  return `
+  <div class="stat-section">
+    <h3>红球遗漏值 Top 10（越大说明越久未出现）</h3>
+    ${sorted.map(([n,m])=>{
+      const avg=(p.avgMissing?.[n]||5).toFixed(1);
+      return `<div class="missing-row">
+        <div class="missing-num">${String(n).padStart(2,'0')}</div>
+        <div class="missing-bar" style="width:${Math.round(m/maxM*160)}px"></div>
+        <div class="missing-cnt">遗漏${m}期 (均${avg})</div>
+      </div>`;
+    }).join('')}
+    ${p.redOverdue?.length>0?`<div style="margin-top:8px;font-size:11px;color:var(--muted);">⚡ 即将回补号码（遗漏≥10期）：</div>
+    <div class="tags-row">${p.redOverdue.sort((a,b)=>a-b).map(n=>`<span class="overdue-tag">${String(n).padStart(2,'0')}</span>`).join('')}</div>`:''}
+  </div>
+  <div class="stat-section">
+    <h3>蓝球遗漏值 Top 5</h3>
+    ${Object.entries(p.blueMissing?.current||{}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n,m])=>{
+      const avg=(p.blueMissing?.avg?.[n]||5).toFixed(1);
+      return `<div class="missing-row">
+        <div class="missing-num">${String(n).padStart(2,'0')}</div>
+        <div class="missing-bar" style="width:${Math.round(m/12*120)}px;background:linear-gradient(90deg,#3498db,#1a5276);"></div>
+        <div class="missing-cnt">遗漏${m}期 (均${avg})</div>
+      </div>`;
+    }).join('')}
+    ${p.blueOverdue?.length>0?`<div class="tags-row">${p.blueOverdue.map(n=>`<span class="overdue-tag" style="border-color:#3498db;color:#1a5276;">${String(n).padStart(2,'0')}</span>`).join('')}</div>`:''}
+  </div>`;
+}
+
+function renderDLTExtra(p) {
+  if(!p.blueCycle) return '';
+  const total30=Object.values(p.consecDist||{}).reduce((a,b)=>a+b,0)||1;
+  const bc=p.blueCycle||{};
+  return `
+  <div class="stat-section">
+    <h3>连号分析（近30期）</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">含连号期数：${p.hasConsec}/30（${(p.hasConsec/30*100).toFixed(0)}%）</div>
+    ${Object.entries(p.consecDist||{}).sort((a,b)=>+a[0]-+b[0]).map(([pairs,cnt])=>`
+      <div class="freq-bar-row">
+        <div class="freq-label" style="width:44px;font-size:10px;">${pairs}对连号</div>
+        <div class="freq-bar" style="width:${Math.round(cnt/total30*150)}px;background:#e67e22;"></div>
+        <div class="freq-cnt">${cnt}期</div>
+      </div>`).join('')}
+  </div>
+  <div class="stat-section">
+    <h3>蓝球周期分析（近50期）</h3>
+    <div class="blue-cycle-grid">
+      <div class="bc-item"><div class="bc-label">奇数</div><div class="bc-val">${bc.odd||0}</div></div>
+      <div class="bc-item"><div class="bc-label">偶数</div><div class="bc-val">${bc.even||0}</div></div>
+      <div class="bc-item"><div class="bc-label">重复率</div><div class="bc-val">${bc.repeatRate||0}%</div></div>
+      <div class="bc-item"><div class="bc-label">小(1-4)</div><div class="bc-val">${bc.small||0}</div></div>
+      <div class="bc-item"><div class="bc-label">中(5-8)</div><div class="bc-val">${bc.mid||0}</div></div>
+      <div class="bc-item"><div class="bc-label">大(9-12)</div><div class="bc-val">${bc.big||0}</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);">近5期蓝球：${(bc.recent||[]).map(n=>`<b style="color:#1e90ff;">${String(n).padStart(2,'0')}</b>`).join(' → ')}</div>
+  </div>
+  <div class="stat-section">
+    <h3>跨度和值分析（近30期）</h3>
+    <div style="font-size:12px;color:var(--muted);">平均跨度：${p.avgSpan?.toFixed(1)||'—'} | 跨度范围：${Math.min(...(p.spans||[0]))}~${Math.max(...(p.spans||[0]))}</div>
+    ${renderSumDist(p)}
+  </div>`;
+}
+
+function renderMandelPanel(p, type) {
+  const isQXC=type==='qxc';
+  const totalCombo = isQXC?Math.pow(10,7):type==='ssq'?combination(33,6):combination(35,5)*combination(12,2);
+  const redCount = isQXC?6:type==='ssq'?6:5;
+  const maxNum = isQXC?9:type==='ssq'?33:35;
+  const minVal = isQXC?0:1;
+  const sumInfo = mandelSumRange(redCount, minVal, maxNum);
+  const scoreItems = isQXC
+    ? Object.entries(p.redCnt||{}).map(([n,c])=>({n:+n,s:mandelScore(+n,9,p.redCnt)})).sort((a,b)=>b.s-a.s).slice(0,10)
+    : Object.entries(p.redCnt).map(([n,c])=>({n:+n,s:mandelScore(+n,maxNum,p.redCnt)})).sort((a,b)=>b.s-a.s).slice(0,12);
+  // Ramanujan 数论分析
+  const ramaScores = ramaPool(maxNum).slice(0, 12);
+  const piDigits = ramaPiDigits().slice(0, 20);
+  const seed = ramaSeed();
+  const maxRamaScore = ramaScores[0]?.s || 1;
+  const rsDisplay = [1,2,3,4,5,6,7].map(n=>({n,rs:ramanujanSum(7,n).toFixed(2)}));
+  const tauDisplay = [];
+  for(let n=1;n<=Math.min(12,maxNum);n++) tauDisplay.push({n, tau:TAU_KNOWN[n]||'~', score:ramaScore(n)});
+
+  return `
+  <div class="mandel-header">
+    <h2>🔬 数论凝聚分析（Mandel + Ramanujan）</h2>
+    <p>Mandel组合数学覆盖度×频率均衡 · Ramanujan τ函数+π级数+拉马努金和三重数论加权</p>
+  </div>
+  <div class="ev-box">
+    <div class="ev-title">📐 Mandel 组合空间分析</div>
+    <div class="ev-grid">
+      <div class="ev-item"><div class="ev-item-label">总组合数</div><div class="ev-item-val">${totalCombo.toLocaleString()}</div></div>
+      <div class="ev-item"><div class="ev-item-label">和值均值μ</div><div class="ev-item-val">${sumInfo.mu.toFixed(1)}</div></div>
+      <div class="ev-item"><div class="ev-item-label">68%范围</div><div class="ev-item-val">${sumInfo.range68[0]}-${sumInfo.range68[1]}</div></div>
+      <div class="ev-item"><div class="ev-item-label">95%范围</div><div class="ev-item-val">${sumInfo.range95[0]}-${sumInfo.range95[1]}</div></div>
+    </div>
+  </div>
+  <div class="stat-section">
+    <h3>Mandel 号码得分 Top ${isQXC?10:12}（频率×0.6 + 位置×0.4）</h3>
+    ${scoreItems.map(({n,s})=>`
+      <div class="freq-bar-row">
+        <div class="freq-label">${String(n).padStart(2,'0')}</div>
+        <div class="freq-bar" style="width:${Math.round(s*180)}px;background:linear-gradient(90deg,#134e5e,#71b280);"></div>
+        <div class="freq-cnt">${(s*100).toFixed(1)}分</div>
+      </div>`).join('')}
+  </div>
+  <div class="stat-section">
+    <h3>✨ Ramanujan 数论公式</h3>
+    <div style="font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:6px;">
+      ① π级数: 1/π = (2√2/9801)·Σ (4k)!·(1103+26390k) / [(k!)⁴·396⁴ᵏ]<br>
+      ② τ函数: Δ(z)=q·∏(1-qⁿ)²⁴=Στ(n)·qⁿ，|τ(n)| mod 1000 作为权重<br>
+      ③ Ramanujan Sum: c_q(n)=μ(q/d)·φ(q)/φ(q/d)，d=gcd(n,q)
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">π 展开前20位: ${piDigits.join(' ')}</div>
+  </div>
+  <div class="stat-section">
+    <h3>τ 函数值</h3>
+    <div class="tau-grid">${tauDisplay.map(({n,tau,score})=>`
+      <div class="tau-cell ${score>0.6?'tau-hot':''}">
+        <div class="tc-num">${String(n).padStart(2,'0')}</div>
+        <div class="tc-tau">τ=${tau}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="stat-section">
+    <h3>Ramanujan Sum c₇(n)</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+      ${rsDisplay.map(({n,rs})=>`<div style="background:#f0f4ff;border:1px solid #c5cae9;border-radius:8px;padding:5px 10px;text-align:center;">
+        <div style="font-size:10px;color:#5c6bc0;">c₇(${n})</div>
+        <div style="font-size:13px;font-weight:700;color:#3949ab;">${rs}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="stat-section">
+    <h3>综合数论得分 Top ${Math.min(12,maxNum)}</h3>
+    ${ramaScores.map(({n,s})=>`
+      <div class="score-bar-row">
+        <div class="score-label">${String(n).padStart(2,'0')}</div>
+        <div class="score-bar" style="width:${Math.round(s/maxRamaScore*180)}px"></div>
+        <div class="score-cnt">${(s*100).toFixed(1)}分</div>
+      </div>`).join('')}
+  </div>
+  <div class="rama-seed-box">
+    <div class="seed-title">🔑 π×时间戳调制种子（每次刷新变化）</div>
+    <div class="seed-val">${seed}</div>
+  </div>`;
+}
+
+function renderQXCStats(p) {
+  const positions = ['第一位','第二位','第三位','第四位','第五位','第六位','特别号'];
+  return `
+  <div class="stat-section"><h3>数字出现频率</h3>${renderFreq(p.sortedReds, 180, 'purple-bar')}</div>
+  <div class="stat-section"><h3>热冷数字</h3>
+    <div class="hot-cold-row">
+      <div class="hot-cold-box"><h4>🔥 热门</h4><div class="balls-wrap">${p.hotReds.map(n=>mkMini(n,'purple')).join('')}</div></div>
+      <div class="hot-cold-box"><h4>❄️ 冷门</h4><div class="balls-wrap">${p.coldReds.map(n=>mkMini(n,'cold-red')).join('')}</div></div>
+    </div>
+  </div>
+  <div class="stat-section"><h3>大小分布（大≥5）</h3>
+    ${[['大数(5-14)',p.bigSmall?.big||0,'blue-fill'],['小数(0-4)',p.bigSmall?.small||0,'']].map(([l,v,cls])=>{
+      const tot=(p.bigSmall?.big||0)+(p.bigSmall?.small||0)||1;
+      return `<div class="pct-row"><span style="width:60px;font-size:11px;">${l}</span><div class="pct-bar-wrap"><div class="pct-fill ${cls}" style="width:${(v/tot*100).toFixed(0)}%"></div></div><span class="pct-num">${(v/tot*100).toFixed(1)}%</span></div>`;
+    }).join('')}
+  </div>
+  <div class="stat-section"><h3>奇偶分布</h3>${renderOddEven(p)}</div>
+  <div class="stat-section"><h3>各位置热门数字</h3>
+    ${positions.map((pos,i)=>{
+      const pf=p.posFq?.[i]||{};
+      const top=Object.entries(pf).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      const avg=Object.entries(pf).reduce((s,[n,c])=>s+n*c,0)/Math.max(1,Object.values(pf).reduce((a,b)=>a+b,0));
+      const rec3=(p.posRec3?.[i]||[]).join(',');
+      return `<div style="font-size:11px;margin-bottom:6px;"><b style="color:var(--muted);">${pos}：</b>${top.map(([n,c])=>`<span style="background:#f0e6ff;border-radius:4px;padding:1px 6px;margin:1px;color:#6c5ce7;">${n}(${c}次)</span>`).join('')}<span style="color:#aaa;margin-left:4px;">均值${avg.toFixed(1)}</span>${rec3?`<span style="background:#fff3e0;border-radius:4px;padding:1px 6px;margin-left:4px;color:#e67e22;font-size:10px;">近3期:${rec3}</span>`:''}</div>`;
+    }).join('')}
+  </div>
+  <div class="stat-section"><h3>和值分布（前6位）</h3>${renderSumDist(p)}</div>
+  <div class="stat-section"><h3>AC值分析</h3>
+    <div style="font-size:12px;color:var(--muted);">均值 ${p.avgAC.toFixed(2)}</div>
+    ${Object.entries(p.acCnt).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([v,c])=>`
+      <div class="freq-bar-row">
+        <div class="freq-label" style="width:40px;">AC=${v}</div>
+        <div class="freq-bar" style="width:${Math.round(c/p.sortedReds[0].c*120)}px;background:#6c5ce7;"></div>
+        <div class="freq-cnt">${c}次</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderDLTStats(p) {
+  return `
+  <div class="stat-section"><h3>红球出现频率 Top 12</h3>${renderFreq(p.sortedReds, 180, '')}</div>
+  <div class="stat-section"><h3>蓝球出现频率</h3>${renderFreq(p.sortedBlues, 120, 'blue-bar')}</div>
+  <div class="stat-section"><h3>热冷号码</h3>${renderHotCold(p)}</div>
+  <div class="stat-section"><h3>区间分析（黄金分割）</h3>${renderZone(p)}</div>
+  <div class="stat-section"><h3>奇偶分布</h3>${renderOddEven(p)}</div>
+  <div class="stat-section"><h3>和值分布</h3>${renderSumDist(p)}</div>
+  <div class="stat-section"><h3>AC值分析</h3>
+    <div style="font-size:12px;color:var(--muted);">均值 ${p.avgAC.toFixed(2)} | 常见 ${p.commonAC.join(',')||'—'}</div>
+    ${Object.entries(p.acCnt).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([v,c])=>`
+      <div class="freq-bar-row">
+        <div class="freq-label" style="width:40px;">AC=${v}</div>
+        <div class="freq-bar" style="width:${Math.round(c/p.sortedReds[0].c*120)}px;background:#9b59b6;"></div>
+        <div class="freq-cnt">${c}次</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+// =========================================================
+//  状态管理
+// =========================================================
+const STATE = {
+  ssq: { lastStrategy: '数据驱动', patterns: null },
+  dlt: { lastStrategy: '数据驱动', patterns: null },
+  qxc: { lastStrategy: '数据驱动', patterns: null }
+};
+// v2.7：精简为4策略 → v3.2：新增3策略（遗漏猎手/AC跨度/重号邻号）
+// v5.4 精简：去除同质/已证伪策略，仅保留「传统加权代表」与「数据驱动」两条路线
+// 旧策略名统一回退到 smart，保证导入历史数据或异常策略名时不会产出空池
+const strategyNames = {
+  smart:'综合智能', data:'数据驱动',
+  balanced:'综合智能', hot:'综合智能', cold:'综合智能', zone:'综合智能', recent:'综合智能',
+  contrast:'综合智能', missile:'综合智能', acspan:'综合智能', repeat:'综合智能',
+  ramanujan:'综合智能', mandel:'综合智能'
+};
+const strategyTips = {
+  ssq: {
+    smart:'🧠 综合智能（传统加权代表·对照）：频率/遗漏/走势加权 + 三区/和值/奇偶/AC 约束。1200 期全历史边际分析证实这些特征无预测力，期望命中与随机基线不可区分，保留仅用于与数据驱动路线做对照。',
+    data:'📊 数据驱动 v5.4（主推）：严格等概率基线(零频率/遗漏/重号加权) + 自标定 P2~P98 和值/奇偶/AC/分区软约束。各号码出现率与均匀不可区分(χ²z=+1.69)，期望命中恒等于随机基线，但形态贴近真实开奖。'
+  },
+  dlt: {
+    smart:'🧠 综合智能（传统加权代表·对照）：分层走势 + 遗漏补偿 + 频率加权 + 五区间/和值约束。全历史实证前区边际与均匀不可区分(χ²z=+1.49)，仅作对照。',
+    data:'📊 数据驱动 v5.4（主推）：前区严格等概率基线 + 自标定 P2~P98 结构软约束·后区严格均匀。频率与遗漏均无预测力，故不加权。'
+  },
+  qxc: {
+    smart:'🧠 综合智能（传统加权代表·对照）：逐位衰减频率 + 同位重号 + 特别号自相关模型。903 期全历史逐位边际 χ²|z|<1.2，同位重号 ≈0σ，仅作对照。',
+    data:'📊 数据驱动 v5.4（主推）：前 6 位与特别号(0~14)全部逐位严格均匀 + 自标定 P2~P98 和值/奇偶软约束。'
+  }
+};
+
+function selectStrat(type, btn) {
+  const row = btn.closest('.strategy-row');
+  row.querySelectorAll('.strat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  STATE[type].lastStrategy = strategyNames[btn.dataset.s] || btn.dataset.s;
+  // v2.6：显示策略提示
+  const tipEl = document.getElementById(type+'-strat-tip');
+  if(tipEl){
+    const tip = strategyTips[type]?.[btn.dataset.s];
+    if(tip){tipEl.textContent=tip;tipEl.classList.add('show');}
+    else{tipEl.classList.remove('show');}
+  }
+}
+
+function switchTab(type) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+type).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+function generate(type) {
+  const countEl = document.getElementById(type+'-count');
+  let count = parseInt(countEl.value)||5;
+  count = Math.min(10, Math.max(1, count));
+  const box = document.getElementById(type+'-results');
+  box.innerHTML = '<div class="loading">⏳ 生成中...</div>';
+
+  const activeBtn = document.querySelector(`#page-${type} .strat-btn.active`);
+  const strategy = activeBtn?.dataset?.s || 'balanced';
+
+  setTimeout(() => {
+    const p = STATE[type].patterns;
+    let html = '';
+    for(let i=0;i<count;i++){
+      let r;
+      if(type==='ssq') r=genSSQ(p,strategy);
+      else if(type==='dlt') r=genDLT(p,strategy);
+      else r=genQXC(p,strategy);
+      html+=renderResult(r,i,type);
+    }
+    box.innerHTML = html;
+  }, 60);
+}
+
+// =========================================================
+//  数据导入/导出/网络更新
+// =========================================================
+function exportAllData() {
+  const data = {
+    version: '5.0',
+    exportedAt: new Date().toISOString(),
+    ssq: SSQ_DATA,
+    dlt: DLT_DATA,
+    qxc: QXC_DATA
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lottery_data_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  const status = document.getElementById('update-status');
+  status.textContent = '✅ 数据已导出';
+  setTimeout(()=>{status.textContent='';},3000);
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const preview = document.getElementById('import-preview');
+      if(data.ssq && data.dlt && data.qxc) {
+        preview.style.display = 'block';
+        preview.innerHTML = `
+          <div style="font-weight:700;margin-bottom:5px;">📥 导入预览</div>
+          <div>双色球: ${data.ssq.length} 期 | 大乐透: ${data.dlt.length} 期 | 七星彩: ${data.qxc.length} 期</div>
+          <div style="margin-top:6px;">
+            <button onclick="confirmImport('${encodeURIComponent(JSON.stringify(data))}')" style="background:#27ae60;color:#fff;border:none;border-radius:6px;padding:4px 14px;font-size:12px;cursor:pointer;margin-right:6px;">确认导入</button>
+            <button onclick="document.getElementById('import-preview').style.display='none'" style="background:#e0e0e0;color:#333;border:none;border-radius:6px;padding:4px 14px;font-size:12px;cursor:pointer;">取消</button>
+          </div>`;
+      } else {
+        alert('无效的数据格式，需要包含 ssq、dlt、qxc 三个字段');
+      }
+    } catch(err) {
+      alert('JSON 解析失败: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function confirmImport(encodedData) {
+  const data = JSON.parse(decodeURIComponent(encodedData));
+  SSQ_DATA.splice(0, SSQ_DATA.length, ...data.ssq);
+  DLT_DATA.splice(0, DLT_DATA.length, ...data.dlt);
+  QXC_DATA.splice(0, QXC_DATA.length, ...data.qxc);
+  document.getElementById('import-preview').style.display = 'none';
+  init(true);
+  const status = document.getElementById('update-status');
+  status.textContent = '✅ 数据已导入，页面已刷新';
+  setTimeout(()=>{status.textContent='';},3000);
+}
+
+function resetAllData() {
+  if(!confirm('⚠️ 确定要重置所有数据为初始值吗？此操作不可撤销！')) return;
+  location.reload();
+}
+
+// =========================================================
+//  数据更新公共工具
+// =========================================================
+
+/** 计算 lottery_data.js 数据新鲜度文字 */
+function _freshnessText(updatedStr) {
+  try {
+    const diffMs = Date.now() - new Date(updatedStr.replace(' ', 'T'));
+    const days  = Math.floor(diffMs / 86400000);
+    const hours = Math.floor((diffMs % 86400000) / 3600000);
+    const mins  = Math.floor((diffMs % 3600000)  / 60000);
+    if (days  > 0) return `${days}天${hours}小时前`;
+    if (hours > 0) return `${hours}小时${mins}分钟前`;
+    if (mins  > 0) return `${mins}分钟前`;
+    return '刚刚更新';
+  } catch(e) { return ''; }
+}
+
+/**
+ * 将 srcRecords 增量合并进 destArr（原地修改）。
+ * - 去重（按期号 r[0]）
+ * - 降序排列
+ * - 截断到最多 maxKeep 条（避免内存膨胀）
+ * 返回新增条数。
+ */
+function _mergeInto(destArr, srcRecords, maxKeep = 50) {
+  if (!srcRecords || !srcRecords.length) return 0;
+  const existIds = new Set(destArr.map(r => r[0]));
+  const toAdd = srcRecords.filter(r => !existIds.has(r[0]));
+  if (!toAdd.length) return 0;
+  destArr.unshift(...toAdd);
+  destArr.sort((a, b) => b[0].localeCompare(a[0]));
+  if (destArr.length > maxKeep) destArr.splice(maxKeep);
+  return toAdd.length;
+}
+
+/** 设置 statusBox 样式主题 */
+function _setBoxTheme(box, theme) {
+  const themes = {
+    info:    { bg: '#e3f2fd', border: '#90caf9',  color: '#1565c0' },
+    success: { bg: '#e8f5e9', border: '#a5d6a7',  color: '#2e7d32' },
+    warning: { bg: '#fff3e0', border: '#ffcc80',  color: '#e65100' },
+    neutral: { bg: '#f5f5f5', border: '#e0e0e0',  color: '#555'    },
+  };
+  const t = themes[theme] || themes.info;
+  box.style.cssText =
+    `display:block;background:${t.bg};border:1px solid ${t.border};` +
+    `border-radius:8px;padding:8px 14px;margin-top:8px;font-size:12px;color:${t.color};`;
+}
+
+// =========================================================
+//  自动静默更新（启动时调用）
+// =========================================================
+function autoUpdateFromNetwork() {
+  if (!window.LOTTERY_DATA || !window.LOTTERY_DATA.updated) return;
+
+  const LD          = window.LOTTERY_DATA;
+  const statusSpan  = document.getElementById('update-status');
+  const statusBox   = document.getElementById('network-status');
+  const freshText   = _freshnessText(LD.updated);
+
+  const ssqNew = _mergeInto(SSQ_DATA, LD.ssq);
+  const dltNew = _mergeInto(DLT_DATA, LD.dlt);
+  const qxcNew = _mergeInto(QXC_DATA, LD.qxc);
+  const total  = ssqNew + dltNew + qxcNew;
+
+  localStorage.setItem('lottery_last_update', `${LD.updated} (${freshText})`);
+
+  if (total > 0) {
+    init(true);  // 重新渲染（传 true 跳过递归）
+    statusSpan.textContent = `✅ 自动更新 ${total} 条`;
+    _setBoxTheme(statusBox, 'success');
+    statusBox.innerHTML =
+      `✅ 启动自动更新成功！新增 <b>${total}</b> 条数据 ` +
+      `<span style="font-size:10px;color:#555;">` +
+        `SSQ+${ssqNew} / DLT+${dltNew} / QXC+${qxcNew} | ${LD.updated} (${freshText})` +
+      `</span>`;
+    setTimeout(() => {
+      statusBox.style.display = 'none';
+      statusSpan.textContent  = `✅ 已更新 ${total} 条`;
+    }, 5000);
+  } else {
+    statusSpan.textContent = `🟢 数据最新 (${freshText || LD.updated})`;
+  }
+}
+
+// =========================================================
+//  手动刷新数据（按钮触发）
+// =========================================================
+function updateFromNetwork() {
+  const statusBox  = document.getElementById('network-status');
+  const statusSpan = document.getElementById('update-status');
+
+  _setBoxTheme(statusBox, 'info');
+  statusSpan.textContent = '⏳ 加载中...';
+
+  if (!window.LOTTERY_DATA || !window.LOTTERY_DATA.updated) {
+    // 内联数据存在时，说明 HTML 已同步最新数据，只是 lottery_data.js 未加载
+    if (typeof SSQ_DATA !== 'undefined' && SSQ_DATA.length > 0) {
+      _setBoxTheme(statusBox, 'neutral');
+      statusBox.innerHTML =
+        `✅ 当前使用页面内置数据（已同步最新）<br>` +
+        `<span style="font-size:10px;color:#888;">📊 SSQ:${SSQ_DATA.length}条 | DLT:${DLT_DATA.length}条 | QXC:${QXC_DATA.length}条</span><br>` +
+        `<span style="font-size:10px;color:#888;">💡 如需在线刷新，请运行: python start.py</span>`;
+      statusSpan.textContent = '✅ 内置数据';
+    } else {
+      _setBoxTheme(statusBox, 'warning');
+      statusBox.innerHTML =
+        `📡 未找到数据文件 (lottery_data.js)<br>` +
+        `<span style="font-size:11px;color:#1565c0;">🖥️ 获取实时开奖（推荐）：先运行</span>` +
+        `<span style="font-size:10px;font-family:monospace;background:#f5f5f5;padding:1px 6px;border-radius:4px;">python start.py</span>` +
+        `<span style="font-size:10px;color:#888;"> 再访问 http://127.0.0.1:8000/lottery_lib.html</span><br>` +
+        `<span style="font-size:11px;color:#1565c0;">或仅生成本地文件：运行</span>` +
+        `<span style="font-size:10px;font-family:monospace;background:#f5f5f5;padding:1px 6px;border-radius:4px;">python fetch_lottery.py</span>` +
+        `<span style="font-size:10px;color:#888;"> 后再次点击「刷新数据」</span><br>` +
+        `<span style="font-size:10px;color:#888;">也可使用 "✏️ 手动输入" 或 "📥 导入JSON"</span>`;
+      statusSpan.textContent = '⚠️ 需先运行脚本';
+    }
+    setTimeout(() => { statusBox.style.display = 'none'; statusSpan.textContent = ''; }, 10000);
+    return;
+  }
+
+  const LD        = window.LOTTERY_DATA;
+  const freshText = _freshnessText(LD.updated);
+  const dataVer   = LD.version || '?';
+  const verOk     = parseFloat(dataVer) >= 2.5;
+  const verIcon   = verOk ? '✅' : '⚠️';
+  const meta      = LD._meta || {};
+  const srcLine   = meta.ssq_source
+    ? `<span style="font-size:10px;color:#888;">📡 SSQ→${meta.ssq_source} | DLT→${meta.dlt_source||'?'} | QXC→${meta.qxc_source||'?'}</span><br>`
+    : '';
+
+  statusBox.innerHTML =
+    `⏳ 正在加载...<br>` +
+    `<span style="font-size:10px;color:#666;">版本: ${verIcon} v${dataVer} | ${LD.updated} (${freshText})</span>`;
+
+  const ssqNew = _mergeInto(SSQ_DATA, LD.ssq);
+  const dltNew = _mergeInto(DLT_DATA, LD.dlt);
+  const qxcNew = _mergeInto(QXC_DATA, LD.qxc);
+  const total  = ssqNew + dltNew + qxcNew;
+
+  if (total > 0) {
+    init(true);
+    _setBoxTheme(statusBox, 'success');
+    statusBox.innerHTML =
+      `✅ 成功加载 <b>${total}</b> 条新数据！<br>` +
+      `<span style="font-size:10px;color:#666;">📊 SSQ +${ssqNew} | DLT +${dltNew} | QXC +${qxcNew}</span><br>` +
+      srcLine +
+      `<span style="font-size:10px;color:#888;">${LD.updated} (${freshText}) | v${dataVer}</span>`;
+    statusSpan.textContent = `✅ 更新 ${total} 条`;
+  } else {
+    _setBoxTheme(statusBox, 'neutral');
+    statusBox.innerHTML =
+      `✅ 数据已是最新<br>` +
+      `<span style="font-size:10px;color:#888;">📊 SSQ:${SSQ_DATA.length}条 | DLT:${DLT_DATA.length}条 | QXC:${QXC_DATA.length}条</span><br>` +
+      srcLine +
+      `<span style="font-size:10px;color:#888;">${LD.updated} (${freshText}) | 💡 如需更新请运行: python fetch_lottery.py</span>`;
+    statusSpan.textContent = '✅ 已是最新';
+  }
+  setTimeout(() => { statusBox.style.display = 'none'; statusSpan.textContent = ''; }, 12000);
+}
+
+// =========================================================
+//  手动输入最新开奖数据
+// =========================================================
+function openManualInput(){
+  document.getElementById('manual-overlay').classList.add('active');
+  ['manual-issue','manual-red-input','manual-blue-input','manual-qxc-input'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('manual-msg').style.display='none';
+  document.getElementById('manual-balls-preview').innerHTML='';
+  onManualTypeChange();
+}
+function closeManualInput(){document.getElementById('manual-overlay').classList.remove('active');}
+function onManualTypeChange(){
+  const t=document.getElementById('manual-type').value;
+  const rr=document.getElementById('manual-red-row'),br=document.getElementById('manual-blue-row'),qr=document.getElementById('manual-qxc-row');
+  const rl=document.getElementById('manual-red-label'),bl=document.getElementById('manual-blue-label'),bh=document.getElementById('manual-blue-hint');
+  if(t==='ssq'){rr.style.display='';br.style.display='';qr.style.display='none';rl.textContent='红球号码（空格或逗号分隔，如 1 5 12 18 25 33）';document.getElementById('manual-red-input').placeholder='1 5 12 18 25 33';bl.textContent='蓝球号码（1个）';document.getElementById('manual-blue-input').placeholder='7';bh.textContent='双色球：1个蓝球 (1~16)';}
+  else if(t==='dlt'){rr.style.display='';br.style.display='';qr.style.display='none';rl.textContent='前区号码（空格或逗号分隔，如 3 8 15 22 30）';document.getElementById('manual-red-input').placeholder='3 8 15 22 30';bl.textContent='后区号码（2个，空格或逗号分隔）';document.getElementById('manual-blue-input').placeholder='5 11';bh.textContent='大乐透：2个蓝球 (1~12)';}
+  else{rr.style.display='none';br.style.display='none';qr.style.display='';}
+}
+function previewBalls(reds,blues,type){
+  let h='';
+  if(type==='qxc'){reds.forEach(n=>{h+=`<div class="ball qxc-base" style="width:30px;height:30px;font-size:11px;">${n}</div>`;});h+='<div class="ball-sep">|</div>';blues.forEach(n=>{h+=`<div class="ball qxc-special" style="width:30px;height:30px;font-size:11px;">${n}</div>`;});}
+  else{reds.forEach(n=>{h+=`<div class="ball red" style="width:30px;height:30px;font-size:11px;">${String(n).padStart(2,'0')}</div>`;});h+='<div class="ball-sep">|</div>';blues.forEach(n=>{h+=`<div class="ball blue" style="width:30px;height:30px;font-size:11px;">${String(n).padStart(2,'0')}</div>`;});}
+  document.getElementById('manual-balls-preview').innerHTML=h;
+}
+function confirmManualInput(){
+  const t=document.getElementById('manual-type').value;
+  const issue=document.getElementById('manual-issue').value.trim();
+  const msg=document.getElementById('manual-msg');
+  if(!issue){msg.className='manual-msg error';msg.textContent='⚠️ 请输入期号';msg.style.display='block';return;}
+  let reds=[],blues=[];
+  if(t==='ssq'){
+    reds=document.getElementById('manual-red-input').value.trim().split(/[\s,，]+/).map(Number).filter(n=>n>=1&&n<=33);
+    blues=document.getElementById('manual-blue-input').value.trim().split(/[\s,，]+/).map(Number).filter(n=>n>=1&&n<=16);
+    if(reds.length!==6||blues.length!==1){msg.className='manual-msg error';msg.textContent=`⚠️ 双色球需要6个红球+1个蓝球，当前：${reds.length}红+${blues.length}蓝`;msg.style.display='block';return;}
+    reds.sort((a,b)=>a-b);
+    if(new Set(reds).size!==6){msg.className='manual-msg error';msg.textContent='⚠️ 红球号码不能重复';msg.style.display='block';return;}
+    if(SSQ_DATA.some(r=>r[0]===issue)){msg.className='manual-msg error';msg.textContent=`⚠️ 期号 ${issue} 已存在`;msg.style.display='block';return;}
+    SSQ_DATA.unshift([issue,reds,blues]);SSQ_DATA.sort((a,b)=>b[0].localeCompare(a[0]));
+    previewBalls(reds,blues,'ssq');
+  }else if(t==='dlt'){
+    reds=document.getElementById('manual-red-input').value.trim().split(/[\s,，]+/).map(Number).filter(n=>n>=1&&n<=35);
+    blues=document.getElementById('manual-blue-input').value.trim().split(/[\s,，]+/).map(Number).filter(n=>n>=1&&n<=12);
+    if(reds.length!==5||blues.length!==2){msg.className='manual-msg error';msg.textContent=`⚠️ 大乐透需要5个前区+2个后区，当前：${reds.length}前+${blues.length}后`;msg.style.display='block';return;}
+    reds.sort((a,b)=>a-b);
+    if(new Set(reds).size!==5){msg.className='manual-msg error';msg.textContent='⚠️ 前区号码不能重复';msg.style.display='block';return;}
+    if(DLT_DATA.some(r=>r[0]===issue)){msg.className='manual-msg error';msg.textContent=`⚠️ 期号 ${issue} 已存在`;msg.style.display='block';return;}
+    DLT_DATA.unshift([issue,reds,blues]);DLT_DATA.sort((a,b)=>b[0].localeCompare(a[0]));
+    previewBalls(reds,blues,'dlt');
+  }else if(t==='qxc'){
+    const nums=document.getElementById('manual-qxc-input').value.trim().split(/[\s,，]+/).map(Number).filter(n=>n>=0&&n<=14);
+    if(nums.length!==7){msg.className='manual-msg error';msg.textContent=`⚠️ 七星彩需要7位数字，当前：${nums.length}位`;msg.style.display='block';return;}
+    // v3.8: 前6位0~9，特别号0~14
+    if(nums.slice(0,6).some(n=>n>9)){msg.className='manual-msg error';msg.textContent='⚠️ 前6位数字必须在0~9之间';msg.style.display='block';return;}
+    if(QXC_DATA.some(r=>r[0]===issue)){msg.className='manual-msg error';msg.textContent=`⚠️ 期号 ${issue} 已存在`;msg.style.display='block';return;}
+    QXC_DATA.unshift([issue,nums]);QXC_DATA.sort((a,b)=>b[0].localeCompare(a[0]));
+    previewBalls(nums.slice(0,6),[nums[6]],'qxc');
+  }
+  msg.className='manual-msg success';
+  msg.textContent=`✅ 已添加 ${t==='ssq'?'双色球':t==='dlt'?'大乐透':'七星彩'} 第 ${issue} 期数据！`;
+  msg.style.display='block';
+  setTimeout(()=>{closeManualInput();init(true);const s=document.getElementById('update-status');s.textContent=`✅ 已添加最新数据（${issue}期）`;setTimeout(()=>{s.textContent='';},4000);},1200);
+}
+
+// =========================================================
+//  v4.1 数据陈旧自动检测（打开页面时调用）
+//  打开即自动检查数据新鲜度：≥2天未更新→醒目警告+自动在线刷新
+//  v4.3 修复：file:// 模式下显示准确的离线提示，不再误导"正在在线刷新"
+// =========================================================
+function checkDataStaleness() {
+  const statusBox  = document.getElementById('network-status');
+  const statusSpan = document.getElementById('update-status');
+  if (!statusBox || !statusSpan) return;
+
+  // 1. 估算数据日期：优先 lottery_data.js 的 updated 时间戳，fallback 期号推算
+  let dataDate = null;
+  if (window.LOTTERY_DATA && window.LOTTERY_DATA.updated) {
+    const d = new Date(String(window.LOTTERY_DATA.updated).replace(' ', 'T'));
+    if (!isNaN(d)) dataDate = d;
+  }
+  if (!dataDate && typeof SSQ_DATA !== 'undefined' && SSQ_DATA.length) {
+    // 期号推算：YYYY + NNN（SSQ每周约3期），粗略估算最新数据日期
+    const issue = String(SSQ_DATA[0][0]);
+    const y = parseInt(issue.slice(0, 4), 10), n = parseInt(issue.slice(4), 10);
+    if (y > 2000 && n > 0) dataDate = new Date(y, 0, 1 + Math.round(n / 3 * 7));
+  }
+  if (!dataDate || isNaN(dataDate)) return;
+
+  const staleDays = Math.floor((Date.now() - dataDate.getTime()) / 86400000);
+  if (staleDays < 2) return;  // 2天内视为新鲜
+
+  // 2. 数据陈旧：醒目警告条
+  _setBoxTheme(statusBox, 'warning');
+  const isFileMode = location.protocol === 'file:';
+  if (isFileMode) {
+    // v4.3: file:// 模式无法在线刷新，显示准确的离线提示
+    statusBox.innerHTML =
+      `⚠️ <b>数据已约 ${staleDays} 天未更新！</b><br>` +
+      `<span style="font-size:11px;">离线模式无法自动刷新，请在命令行运行：</span><br>` +
+      `<span style="font-size:10px;font-family:monospace;background:#f5f5f5;padding:1px 6px;border-radius:4px;">python fetch_lottery.py --sync-html</span>` +
+      `<span style="font-size:10px;color:#888;"> 或 </span>` +
+      `<span style="font-size:10px;font-family:monospace;background:#f5f5f5;padding:1px 6px;border-radius:4px;">python start.py</span>`;
+  } else {
+    // http:// 模式：自动在线刷新
+    statusBox.innerHTML =
+      `⚠️ <b>数据已约 ${staleDays} 天未更新！</b><br>` +
+      `<span style="font-size:11px;">正在自动尝试在线刷新... 若失败请运行：</span>` +
+      `<span style="font-size:10px;font-family:monospace;background:#f5f5f5;padding:1px 6px;border-radius:4px;">python start.py</span>`;
+  }
+  statusBox.style.display = '';
+  statusSpan.textContent = `⚠️ 数据陈旧(${staleDays}天)`;
+
+  // 3. v4.6：在线刷新已由 autoRefreshOnOpen() 统一处理，此处仅显示陈旧警告
+  // 12秒后自动隐藏警告（若刷新成功会被成功提示覆盖）
+  setTimeout(() => { statusBox.style.display = 'none'; }, 12000);
+}
+
+// =========================================================
+//  在线刷新（通过本地服务器 /api/refresh 获取最新数据）
+// =========================================================
+function fetchOnlineRefresh() {
+  // 仅在 http/https 协议下尝试（file:// 模式下跳过）
+  if (typeof fetch !== 'function') return;
+  if (location.protocol === 'file:') return;
+
+  const statusSpan = document.getElementById('update-status');
+  const statusBox  = document.getElementById('network-status');
+  if (statusSpan) statusSpan.textContent = '在线刷新中...';
+
+  fetch('/api/refresh')
+    .then(r => r.json())
+    .then(res => {
+      if (res.success && res.data) {
+        const LD = res.data;
+        if (LD.ssq && LD.dlt && LD.qxc) {
+          window.LOTTERY_DATA = LD;
+          const ssqNew = _mergeInto(SSQ_DATA, LD.ssq);
+          const dltNew = _mergeInto(DLT_DATA, LD.dlt);
+          const qxcNew = _mergeInto(QXC_DATA, LD.qxc);
+          const total  = ssqNew + dltNew + qxcNew;
+          if (total > 0) {
+            init(true);
+            if (statusSpan) statusSpan.textContent = '在线刷新 +' + total + ' 条';
+            if (statusBox) {
+              _setBoxTheme(statusBox, 'success');
+              statusBox.innerHTML = '在线刷新成功！新增 ' + total + ' 条 (' + (LD.updated||'') + ')';
+              statusBox.style.display = '';
+              setTimeout(() => { statusBox.style.display = 'none'; }, 6000);
+            }
+          } else {
+            if (statusSpan) statusSpan.textContent = '数据已是最新';
+          }
+        }
+      }
+    })
+    .catch(() => {
+      // 服务器不可用或 file:// 模式，静默忽略
+      if (statusSpan) statusSpan.textContent = '';
+    });
+}
+
+// =========================================================
+//  动态重载同目录 lottery_data.js（离线/file:// 刷新的核心）
+//  file:// 模式浏览器不缓存本地文件，用裸文件名即可；
+//  http:// 模式追加时间戳防止缓存。
+//  注意：官方接口不支持 JSONP 且无 CORS 头，浏览器无法直连抓取，
+//        离线实时刷新只能依赖本地已生成的 lottery_data.js。
+// =========================================================
+function reloadLocalDataJs(callback) {
+  const s = document.createElement('script');
+  s.src = (location.protocol === 'file:')
+    ? 'lottery_data.js'
+    : 'lottery_data.js?_t=' + Date.now();
+  let done = false;
+  const finish = (ok) => { if (done) return; done = true; callback(ok); };
+  s.onload  = () => finish(true);
+  s.onerror = () => finish(false);
+  setTimeout(() => finish(false), 4000); // file:// 下文件不存在会触发 onerror，超时作兜底
+  document.head.appendChild(s);
+}
+
+// 离线模式引导：明确告知两种获取最新数据的方式
+function showOfflineRefreshGuide() {
+  const statusBox  = document.getElementById('network-status');
+  const statusSpan = document.getElementById('update-status');
+  if (!statusBox || !statusSpan) return;
+  _setBoxTheme(statusBox, 'warning');
+  statusBox.innerHTML =
+    `🔌 <b>离线模式 — 需本地数据或服务</b><br>` +
+    `<span style="font-size:11px;color:#1565c0;">① 获取实时开奖（推荐）：运行</span><br>` +
+    `<span style="font-size:10px;font-family:monospace;background:#f5f5f5;padding:1px 6px;border-radius:4px;">python start.py</span>` +
+    `<span style="font-size:10px;color:#888;"> 后用浏览器打开 http://127.0.0.1:8000/lottery_lib.html</span><br>` +
+    `<span style="font-size:11px;color:#1565c0;">② 仅刷新本地文件：运行</span><br>` +
+    `<span style="font-size:10px;font-family:monospace;background:#f5f5f5;padding:1px 6px;border-radius:4px;">python fetch_lottery.py</span>` +
+    `<span style="font-size:10px;color:#888;"> 生成 lottery_data.js 后再次点击「刷新数据」</span>`;
+  statusBox.style.display = '';
+  statusSpan.textContent = '⚠️ 离线模式';
+  setTimeout(() => { statusBox.style.display = 'none'; statusSpan.textContent = ''; }, 15000);
+}
+
+// =========================================================
+//  手动刷新数据（按钮触发）
+//  http:// 模式：优先 /api/refresh 实时抓取，失败回退本地 lottery_data.js
+//  file:// 模式：动态重载本地 lottery_data.js（需先运行 fetch_lottery.py 生成）
+// =========================================================
+function refreshData() {
+  const statusSpan = document.getElementById('update-status');
+  const statusBox  = document.getElementById('network-status');
+
+  if (typeof fetch === 'function' && location.protocol !== 'file:') {
+    // ---- http:// 模式：实时刷新 ----
+    if (statusSpan) statusSpan.textContent = '正在在线刷新...';
+    if (statusBox) { _setBoxTheme(statusBox, 'info'); statusBox.style.display = ''; statusBox.innerHTML = '正在从本地服务获取最新数据...'; }
+    fetch('/api/refresh')
+      .then(r => r.ok ? r.json() : Promise.reject('bad status ' + r.status))
+      .then(res => {
+        if (res.success && res.data) {
+          window.LOTTERY_DATA = res.data;
+          updateFromNetwork();
+        } else {
+          // 服务返回异常，回退本地 lottery_data.js
+          reloadLocalDataJs(ok => ok ? updateFromNetwork() : showOfflineRefreshGuide());
+        }
+      })
+      .catch(() => {
+        // 服务不可用，回退本地 lottery_data.js
+        reloadLocalDataJs(ok => ok ? updateFromNetwork() : showOfflineRefreshGuide());
+      });
+  } else {
+    // ---- file:// 离线模式：动态重载本地 lottery_data.js ----
+    if (statusSpan) statusSpan.textContent = '正在读取本地数据...';
+    if (statusBox) { _setBoxTheme(statusBox, 'info'); statusBox.style.display = ''; statusBox.innerHTML = '正在读取本地 lottery_data.js ...'; }
+    reloadLocalDataJs(ok => {
+      if (ok && window.LOTTERY_DATA && window.LOTTERY_DATA.updated) {
+        updateFromNetwork();
+      } else {
+        showOfflineRefreshGuide();
+      }
+    });
+  }
+}
+
+// =========================================================
+//  v4.6 开机自动更新开奖数据（页面加载时触发）
+//  http:// 模式：调用 /api/refresh 获取最新数据，全程显示提示信息
+//  file:// 模式：显示离线提示，引导用户运行 start.py
+// =========================================================
+function autoRefreshOnOpen() {
+  const statusBox  = document.getElementById('network-status');
+  const statusSpan = document.getElementById('update-status');
+  if (!statusBox || !statusSpan) return;
+
+  // file:// 模式：无法在线刷新，显示离线提示
+  if (location.protocol === 'file:' || typeof fetch !== 'function') {
+    _setBoxTheme(statusBox, 'neutral');
+    statusBox.innerHTML =
+      `📂 <b>离线模式</b> — 未自动更新开奖数据<br>` +
+      `<span style="font-size:11px;color:#666;">如需获取最新数据，请在命令行运行：</span><br>` +
+      `<span style="font-size:10px;font-family:monospace;background:#f5f5f5;padding:1px 6px;border-radius:4px;">python start.py</span>` +
+      `<span style="font-size:10px;color:#888;"> 启动服务器后自动更新</span>`;
+    statusBox.style.display = '';
+    statusSpan.textContent = '📂 离线模式';
+    setTimeout(() => { statusBox.style.display = 'none'; statusSpan.textContent = ''; }, 8000);
+    return;
+  }
+
+  // http:// 模式：显示"正在更新"提示
+  _setBoxTheme(statusBox, 'info');
+  statusBox.innerHTML =
+    `🔄 <b>正在自动更新开奖数据...</b><br>` +
+    `<span style="font-size:10px;color:#666;">⏳ 从数据源获取最新开奖结果</span>`;
+  statusBox.style.display = '';
+  statusSpan.textContent = '🔄 自动更新中...';
+
+  fetch('/api/refresh')
+    .then(r => r.json())
+    .then(res => {
+      if (res.success && res.data) {
+        const LD = res.data;
+        if (LD.ssq && LD.dlt && LD.qxc) {
+          window.LOTTERY_DATA = LD;
+          const ssqNew = _mergeInto(SSQ_DATA, LD.ssq);
+          const dltNew = _mergeInto(DLT_DATA, LD.dlt);
+          const qxcNew = _mergeInto(QXC_DATA, LD.qxc);
+          const total  = ssqNew + dltNew + qxcNew;
+          const freshText = _freshnessText(LD.updated);
+          const srcLine = (LD._meta && LD._meta.ssq_source)
+            ? `<span style="font-size:10px;color:#888;">📡 SSQ→${LD._meta.ssq_source} | DLT→${LD._meta.dlt_source||'?'} | QXC→${LD._meta.qxc_source||'?'}</span><br>`
+            : '';
+
+          localStorage.setItem('lottery_last_update', `${LD.updated} (${freshText})`);
+
+          if (total > 0) {
+            init(true);  // 重新渲染（传 true 跳过递归）
+            _setBoxTheme(statusBox, 'success');
+            statusBox.innerHTML =
+              `✅ <b>开机自动更新成功！</b>新增 <b>${total}</b> 条数据<br>` +
+              `<span style="font-size:10px;color:#666;">📊 SSQ +${ssqNew} | DLT +${dltNew} | QXC +${qxcNew}</span><br>` +
+              srcLine +
+              `<span style="font-size:10px;color:#888;">${LD.updated} (${freshText})</span>`;
+            statusSpan.textContent = `✅ 自动更新 ${total} 条`;
+          } else {
+            _setBoxTheme(statusBox, 'neutral');
+            statusBox.innerHTML =
+              `✅ <b>开奖数据已是最新</b><br>` +
+              `<span style="font-size:10px;color:#888;">📊 SSQ:${SSQ_DATA.length}条 | DLT:${DLT_DATA.length}条 | QXC:${QXC_DATA.length}条</span><br>` +
+              srcLine +
+              `<span style="font-size:10px;color:#888;">${LD.updated} (${freshText})</span>`;
+            statusSpan.textContent = '✅ 数据最新';
+          }
+          setTimeout(() => { statusBox.style.display = 'none'; statusSpan.textContent = ''; }, 10000);
+        }
+      } else {
+        _setBoxTheme(statusBox, 'warning');
+        statusBox.innerHTML =
+          `⚠️ <b>自动更新失败</b> — 服务器返回异常<br>` +
+          `<span style="font-size:10px;color:#888;">数据仍可正常使用（页面内置数据）</span>`;
+        statusSpan.textContent = '⚠️ 更新失败';
+        setTimeout(() => { statusBox.style.display = 'none'; statusSpan.textContent = ''; }, 8000);
+      }
+    })
+    .catch(() => {
+      // 服务器不可用
+      _setBoxTheme(statusBox, 'warning');
+      statusBox.innerHTML =
+        `⚠️ <b>无法连接本地服务器</b><br>` +
+        `<span style="font-size:11px;color:#666;">请确认已运行: </span>` +
+        `<span style="font-size:10px;font-family:monospace;background:#f5f5f5;padding:1px 6px;border-radius:4px;">python start.py</span><br>` +
+        `<span style="font-size:10px;color:#888;">当前使用页面内置数据，功能正常</span>`;
+      statusSpan.textContent = '⚠️ 服务器未启动';
+      setTimeout(() => { statusBox.style.display = 'none'; statusSpan.textContent = ''; }, 8000);
+    });
+}
+
+// =========================================================
+//  初始化
+// =========================================================
+// 标志位：防止 autoUpdateFromNetwork 内调用 init() 造成递归
+let _initFromAutoUpdate = false;
+
+function init(skipAutoUpdate) {
+  // 分析数据
+  STATE.ssq.patterns = analyzeData(SSQ_DATA, r=>r[1], r=>r[2], 33, 16, false);
+  STATE.dlt.patterns = analyzeData(DLT_DATA, r=>r[1], r=>r[2], 35, 12, false);
+  STATE.qxc.patterns = analyzeData(QXC_DATA, r=>r[1], ()=>[], 9, 0, true);
+
+  // 渲染各区域
+  document.getElementById('ssq-last').innerHTML = renderLastPeriod('ssq');
+  document.getElementById('dlt-last').innerHTML = renderLastPeriod('dlt');
+  document.getElementById('qxc-last').innerHTML = renderLastPeriod('qxc');
+
+  document.getElementById('ssq-missing').innerHTML = renderSSQMissing(STATE.ssq.patterns);
+  document.getElementById('ssq-extra').innerHTML = renderSSQExtra(STATE.ssq.patterns);
+
+  document.getElementById('dlt-missing').innerHTML = renderDLTMissing(STATE.dlt.patterns);
+  document.getElementById('dlt-extra').innerHTML = renderDLTExtra(STATE.dlt.patterns);
+
+  document.getElementById('ssq-mandel').innerHTML = renderMandelPanel(STATE.ssq.patterns, 'ssq');
+  document.getElementById('dlt-mandel').innerHTML = renderMandelPanel(STATE.dlt.patterns, 'dlt');
+  document.getElementById('qxc-mandel').innerHTML = renderMandelPanel(STATE.qxc.patterns, 'qxc');
+
+  document.getElementById('ssq-stats').innerHTML = renderSSQStats(STATE.ssq.patterns);
+  document.getElementById('dlt-stats').innerHTML = renderDLTStats(STATE.dlt.patterns);
+  document.getElementById('qxc-stats').innerHTML = renderQXCStats(STATE.qxc.patterns);
+
+  // 显示更新状态
+  const stored = localStorage.getItem('lottery_last_update');
+  if(stored) {
+    document.getElementById('update-status').textContent = `📅 ${stored}`;
+  }
+
+  // 启动自动更新（首次加载时触发，重新渲染时跳过避免递归）
+  if (!skipAutoUpdate) {
+    autoUpdateFromNetwork();
+    // v4.6：开机自动更新开奖数据 + 提示信息（替换原 fetchOnlineRefresh 静默调用）
+    autoRefreshOnOpen();
+    // v4.1：数据陈旧自动检测（≥2天未更新→警告，刷新已由 autoRefreshOnOpen 处理）
+    checkDataStaleness();
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => init(false));
+
+// =========================================================
+//  v5.1：回车触发预测（Enter-to-predict）
+//  在当前激活的彩种页按回车即生成号码；焦点在按钮/链接/下拉/多行文本上时
+//  交还原生行为，避免与按钮点击重复触发。
+// =========================================================
+(function(){
+  function activeType(){
+    const page = document.querySelector('.page.active');
+    if(!page || !page.id || page.id.indexOf('page-')!==0) return null;
+    const t = page.id.slice(5);
+    return ['ssq','dlt','qxc'].includes(t) ? t : null;
+  }
+  document.addEventListener('keydown', function(e){
+    if(e.key!=='Enter') return;
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+    // 焦点在按钮/链接/下拉/多行文本上 → 交还原生行为，避免重复触发
+    if(tag==='button'||tag==='a'||tag==='select'||tag==='textarea') return;
+    const type = activeType();
+    if(!type) return;
+    e.preventDefault();
+    generate(type);
+  });
+})();
+</script>
+</body>
+</html>

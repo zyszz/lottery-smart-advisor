@@ -1,0 +1,18 @@
+# ---- 本机 / 编辑器 ----
+.workbuddy/
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store
+Thumbs.db
+
+# ---- 本地产物：截图、测试残留、脱敏导出副本 ----
+data/*.png
+dist/
+refresh_test.json
+
+# ---- 抓取/报告临时文件 ----
+*.log
+.tmp/

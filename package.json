@@ -1,0 +1,23 @@
+{
+  "name": "lottery-smart-advisor",
+  "version": "5.4.0",
+  "private": true,
+  "description": "双色球 / 大乐透 / 七星彩 数据驱动选号与统计验证（含全历史回测与随机性检验）",
+  "scripts": {
+    "start": "python start.py",
+    "fetch": "python fetch_lottery.py --sync-html",
+    "validate:data": "python scripts/validate_data.py",
+    "export:public": "python scripts/export_public.py",
+    "test:gate": "node tests/run_gate.js",
+    "test:stats": "node tests/marginal_probe.js && node tests/data_policy_probe.js && node tests/multiple_testing.js",
+    "test:verify": "node tests/strategy_final_verify.js",
+    "test:all": "npm run validate:data && npm run test:stats && npm run test:gate",
+    "report": "node tests/final_report.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,5 @@
+# 抓取与服务端仅使用 Python 标准库，无第三方依赖。
+#
+# 若需固定环境，建议 Python >= 3.10（用到 typing / urllib / ssl 标准库能力）。
+# Node 侧测试依赖见 package.json（playwright），执行：
+#   npm install && npx playwright install chromium
