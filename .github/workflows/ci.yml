@@ -46,6 +46,8 @@ jobs:
         run: node tests/data_policy_probe.js
       - name: 多重比较校正（Bonferroni / BH-FDR）
         run: node tests/multiple_testing.js
+      - name: NIST 风格随机性检验套件（含缺陷数据灵敏度验证）
+        run: node tests/randomness_suite.js
 
   # ③ 浏览器回归门禁：7 个脚本 / 67 项断言
   browser-gate:

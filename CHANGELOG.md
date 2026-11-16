@@ -1,5 +1,15 @@
 # 更新日志
 
+## v5.5.0 — 2026-11-16（GitHub 资料检索与能力合并）
+
+- 新增 `tests/randomness_suite.js`：借鉴 NIST SP 800-22 Rev1a 的 monobit / runs / block-frequency / cumulative-sums / serial 五项检验，适配彩票天然对半分字段（QXC 前 6 位、SSQ 蓝球）。
+- 借鉴 NIST README 的**灵敏度验证**做法：除真实开奖与同构合成均匀对照外，额外喂入已知偏倚（`P(1)=0.60`）与已知序列相关（70% 沿用上一位）两组缺陷数据，确认检验套件确实能检出问题，排除「检验太弱所以全部通过」的假阴性。实测真实组校正后 0/5 显著，偏倚组 5/5、相关组 3/5 被检出。
+- 发现并修正一个假阳性来源：`data/raw_dlt.json` 的后区号码 1200/1200 期按升序存放，直接拼接位流会产生 `(0,1)` 667 次 / `(1,0)` 0 次的伪序列相关。改为不依赖顺序的「无序两号组合 χ² 均匀性检验」（66 种，df=65）并配同构合成对照。
+- 新增 `docs/odds-and-responsible-play.md`：精确头奖概率（SSQ 1/17,721,088、DLT 1/21,425,712、QXC 1/15,000,000）、期望值、每期独立性、六类认知偏差与理性购彩提示。借鉴 `dungnotnull/lottery-statistics-responsible-play-advisor-agent-skill` 的零预测框架。
+- `docs/methodology.md` 新增第 8~10 节（检验套件、展示顺序陷阱、赔率文档入口）；README / package.json / CI 同步接入。
+- **未采用**：需 10⁶ 量级比特的 DFT / 矩阵秩 / 线性复杂度 / Maurer universal / random excursion 检验，以及任何 LSTM / 深度学习预测方案。
+- 页面与开奖数据未改动，资料库云端金版保持一致。
+
 ## v5.4.0 — 2026-11-13
 
 - 数据更新至 SSQ `2026130` / DLT `2026129` / QXC `2026129`，全历史 1200 / 1200 / 916 期。

@@ -13,7 +13,8 @@
 | `lottery_lib.html` | 单文件应用，三个彩种页签、两种策略、遗漏值/连号/AC/跨度等统计面板，支持 `file://` 离线直接打开 |
 | `fetch_lottery.py` | 从福彩/体彩官网抓取最新开奖，生成 `lottery_data.js` 与 `data/raw_*.json` 全历史，可选同步 HTML 内联数组 |
 | `start.py` | 本地 HTTP 服务 + `/api/refresh` 实时刷新接口；`file://` 无法直连官网时由它做同源代理 |
-| `tests/` | 浏览器回归门禁（7 脚本 / 67 项）、纯 Node 统计回测、walk-forward 与多重比较校正 |
+| `tests/` | 浏览器回归门禁（7 脚本 / 67 项）、纯 Node 统计回测、walk-forward、多重比较校正、NIST 风格随机性检验套件 |
+| `docs/` | 方法论、数据同步策略、赔率与理性购彩 |
 | `scripts/` | 数据完整性校验、公开版脱敏导出 |
 | `.github/workflows/` | 每日自动抓数提交、push/PR 全量 CI |
 
@@ -38,6 +39,7 @@ python fetch_lottery.py --sync-html # 同时刷新 HTML 内联数组
 python scripts/validate_data.py
 npm install && npx playwright install chromium
 npm run test:stats                  # 边际概率 / walk-forward / 多重比较校正
+npm run test:randomness             # NIST 风格随机性检验 + 缺陷数据灵敏度验证
 npm run test:gate                   # 7 个浏览器门禁脚本
 ```
 
@@ -67,7 +69,7 @@ docs/                     methodology.md / data-sync.md
 - **`ci.yml`**：数据完整性矩阵 → 统计检验矩阵（Node 20/22）→ Playwright 浏览器门禁 → main 上额外跑 40 轮高功效配对验证。
 - **`update-data.yml`**：每日北京时间 09:30 抓取并校验后自动提交；抓取失败（境外 runner 访问国内站点不可达属预期内）时恢复原文件、不写坏数据、不产生红灯。
 
-参考并借鉴了 GitHub 上同类项目的工程实践：`UlionTse/lotterycn` 的仓库规范与 CI 离线测试分组、`gudaoxuri/lottery_history` 的定时抓数与自动提交流程。**未采用**任何 LSTM / 深度学习预测方案——它们与本项目的统计结论相悖。
+参考并借鉴了 GitHub 上同类项目：`UlionTse/lotterycn`（仓库规范、CI 离线测试分组）、`gudaoxuri/lottery_history`（定时抓数自动提交）、`dj-on-github/sp800_22_tests` 与 `stevenang/randomness_testsuite`（NIST SP 800-22 检验实现与「已知缺陷数据验证灵敏度」做法）、`dungnotnull/lottery-statistics-responsible-play-advisor-agent-skill`（组合数学与零预测的理性购彩框架）。**未采用**任何 LSTM / 深度学习预测方案——它们与本项目的统计结论相悖；也未采用需百万比特样本的 DFT / 矩阵秩 / 线性复杂度检验。
 
 ## 统计结论摘要（2026-11-13 全历史复验）
 
@@ -79,8 +81,12 @@ docs/                     methodology.md / data-sync.md
 | 结构塑形 | 理论期望 `Δ=+0.00004`，与随机不可区分，**保留** |
 | 上期重号 | SSQ `-0.58σ` / DLT `+0.44σ` / QXC `-0.01σ`，无信号 |
 | 多重比较校正 | Bonferroni 与 BH-FDR 校正后显著项均为 0 |
+| NIST 随机性套件（2026-11-16） | monobit / runs / block-frequency / cumulative-sums / serial 全部 PASS；校正后 0/5 显著 |
+| 套件灵敏度自检 | 已知偏倚数据检出 5/5、已知序列相关数据检出 3/5 → 检验有效，不是「太弱所以全过」 |
 
-单次检验偶发 `|z|>2` 属抽样噪声，须独立复跑 3 次确认；越界符号会在复跑间随机翻转。详见 `tests/multiple_testing.js`。
+单次检验偶发 `|z|>2` 属抽样噪声，须独立复跑 3 次确认；越界符号会在复跑间随机翻转。详见 `tests/multiple_testing.js` 与 `tests/randomness_suite.js`。
+
+三个彩种的精确头奖概率、期望值、独立性证明与常见认知偏差见 [赔率、独立性与理性购彩](docs/odds-and-responsible-play.md)。
 
 ## 关于页面版本
 
