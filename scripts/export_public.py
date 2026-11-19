@@ -60,7 +60,8 @@ def main():
     if not os.path.exists(SRC):
         print("FAIL: 找不到源文件 %s" % SRC)
         return 1
-    src = open(SRC, encoding="utf-8", newline="").read()
+    with open(SRC, encoding="utf-8", newline="") as fh:
+        src = fh.read()
     clean = strip_platform_markers(src)
 
     leaks = []
@@ -87,7 +88,8 @@ def main():
         return 0
 
     os.makedirs(os.path.dirname(DST), exist_ok=True)
-    open(DST, "w", encoding="utf-8", newline="").write(clean)
+    with open(DST, "w", encoding="utf-8", newline="") as fh:
+        fh.write(clean)
     print("OK: 已生成 %s" % DST)
     print("    原文件 %d bytes -> 公开版 %d bytes" % (len(src.encode("utf-8")), len(clean.encode("utf-8"))))
     print("    剥离 142 行 data-page-node-id / 75 段 <!--pnid:--> / inject.js 引用")

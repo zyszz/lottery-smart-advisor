@@ -40,9 +40,13 @@ VERSION = "5.0"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-CTX = ssl.create_default_context()
-CTX.check_hostname = False
-CTX.verify_mode = ssl.CERT_NONE
+# 默认启用 SSL 证书验证；仅在 CI / 内网自签名场景设置 LOTTERY_SSL_INSECURE=1
+if os.environ.get("LOTTERY_SSL_INSECURE") == "1":
+    CTX = ssl.create_default_context()
+    CTX.check_hostname = False
+    CTX.verify_mode = ssl.CERT_NONE
+else:
+    CTX = ssl.create_default_context()
 
 
 # =========================================================
@@ -242,7 +246,8 @@ def fmt_rows(rows, indent="  "):
 
 
 def sync_html(payload, html_path=HTML):
-    html = open(html_path, encoding="utf-8").read()
+    with open(html_path, encoding="utf-8") as fh:
+        html = fh.read()
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     new_html = html
     for name, (key, _, _) in SPEC.items():

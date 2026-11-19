@@ -43,7 +43,8 @@ def load_raw(game):
         fail("%s: 缺少 %s" % (game, p))
         return []
     try:
-        return json.load(open(p, encoding="utf-8"))
+        with open(p, encoding="utf-8") as fh:
+            return json.load(fh)
     except Exception as exc:
         fail("%s: JSON 解析失败 %s" % (game, exc))
         return []
@@ -121,7 +122,10 @@ def main():
         raws[game] = load_raw(game)
         check_rows(game, raws[game])
 
-    js_txt = open(DATA_JS, encoding="utf-8").read() if os.path.exists(DATA_JS) else ""
+    js_txt = ""
+    if os.path.exists(DATA_JS):
+        with open(DATA_JS, encoding="utf-8") as fh:
+            js_txt = fh.read()
     if not js_txt:
         fail("缺少 lottery_data.js")
     else:
@@ -142,7 +146,10 @@ def main():
                     fail("%s: raw 前50期与 lottery_data.js 不一致" % game)
             print("  ✅ raw / lottery_data.js 三彩种前 50 期一致")
 
-    html_txt = open(HTML, encoding="utf-8").read() if os.path.exists(HTML) else ""
+    html_txt = ""
+    if os.path.exists(HTML):
+        with open(HTML, encoding="utf-8") as fh:
+            html_txt = fh.read()
     if html_txt:
         for game in RULES:
             rows = inline_rows(html_txt, game.upper())
@@ -153,7 +160,8 @@ def main():
         print("  ✅ HTML 内联三彩种前 50 期与 raw 一致")
 
     if os.path.exists(PUBLIC_HTML):
-        pub = open(PUBLIC_HTML, encoding="utf-8").read()
+        with open(PUBLIC_HTML, encoding="utf-8") as fh:
+            pub = fh.read()
         for token in ("data-page-node-id", "<!--pnid:", "/page/page_comm/inject.js",
                       "C:/Users/", "/space/d/"):
             if token in pub:

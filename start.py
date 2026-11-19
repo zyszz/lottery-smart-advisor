@@ -32,6 +32,13 @@ DATA_JS = os.path.join(BASE, "lottery_data.js")
 REFRESH_LIMIT = 80
 
 
+def _parse_lottery_data_js(path=DATA_JS):
+    """从 lottery_data.js 解析出 window.LOTTERY_DATA 对象。"""
+    with open(path, encoding="utf-8") as fh:
+        txt = fh.read()
+    return json.loads(txt.split("=", 1)[1].rstrip().rstrip(";"))
+
+
 def load_data():
     """优先实时抓取；失败则回退到本地 lottery_data.js。
 
@@ -40,8 +47,7 @@ def load_data():
     """
     if os.environ.get("LOTTERY_OFFLINE") == "1":
         if os.path.exists(DATA_JS):
-            txt = open(DATA_JS, encoding="utf-8").read()
-            return json.loads(txt.split("=", 1)[1].rstrip().rstrip(";")), "cache(lottery_data.js, offline)"
+            return _parse_lottery_data_js(), "cache(lottery_data.js, offline)"
         raise RuntimeError("LOTTERY_OFFLINE=1 但找不到本地 lottery_data.js")
     try:
         import fetch_lottery
@@ -53,10 +59,8 @@ def load_data():
     except Exception as exc:  # noqa: BLE001
         if os.path.exists(DATA_JS):
             try:
-                txt = open(DATA_JS, encoding="utf-8").read()
-                obj = json.loads(txt.split("=", 1)[1].rstrip().rstrip(";"))
-                return obj, "cache(lottery_data.js)"
-            except Exception:
+                return _parse_lottery_data_js(), "cache(lottery_data.js)"
+            except Exception:  # noqa: BLE001
                 pass
         raise RuntimeError("无法获取开奖数据: %s" % exc)
 
@@ -99,7 +103,8 @@ class Handler(BaseHTTPRequestHandler):
                 ctype = "application/javascript; charset=utf-8"
             else:
                 ctype = "text/plain; charset=utf-8"
-            self._send(200, open(fp, "rb").read(), ctype)
+            with open(fp, "rb") as fh:
+                self._send(200, fh.read(), ctype)
         else:
             self._send(404, "not found: " + path, "text/plain; charset=utf-8")
 

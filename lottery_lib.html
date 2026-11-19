@@ -77,10 +77,10 @@
   .meta-badge.span { background: #eafaf1; color: #1a5632; }
   .balls-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .ball { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
-  .ball.red { background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b); }
-  .ball.blue { background: radial-gradient(circle at 35% 35%, #5dade2, #1a5276); }
-  .ball.special { background: radial-gradient(circle at 35% 35%, #f9ca24, #e67e22); color: #333; }
-  .ball.qxc-base { background: radial-gradient(circle at 35% 35%, #a29bfe, #6c5ce7); }
+  .ball.red, .mini-ball.red { background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b); }
+  .ball.blue, .mini-ball.blue { background: radial-gradient(circle at 35% 35%, #5dade2, #1a5276); }
+  .ball.special, .mini-ball.special { background: radial-gradient(circle at 35% 35%, #f9ca24, #e67e22); color: #333; }
+  .ball.qxc-base, .mini-ball.purple { background: radial-gradient(circle at 35% 35%, #a29bfe, #6c5ce7); }
   .ball.qxc-special { background: radial-gradient(circle at 35% 35%, #fd79a8, #e84393); }
   .ball-sep { font-size: 16px; color: var(--border); font-weight: 300; }
 
@@ -99,11 +99,8 @@
   .hot-cold-box h4 { font-size: 11px; margin-bottom: 5px; color: var(--muted); }
   .balls-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
   .mini-ball { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; }
-  .mini-ball.red { background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b); }
-  .mini-ball.blue { background: radial-gradient(circle at 35% 35%, #5dade2, #1a5276); }
-  .mini-ball.special { background: radial-gradient(circle at 35% 35%, #f9ca24, #e67e22); color: #333; }
+  /* red/blue/special/purple 已与 .ball 合并到上方 */
   .mini-ball.cold-red { background: radial-gradient(circle at 35% 35%, #bdc3c7, #7f8c8d); }
-  .mini-ball.purple { background: radial-gradient(circle at 35% 35%, #a29bfe, #6c5ce7); }
 
   /* Zone Analysis */
   .zone-row { display: flex; gap: 0; margin-bottom: 5px; height: 24px; border-radius: 6px; overflow: hidden; }
@@ -424,13 +421,15 @@
 </div>
 
 <!-- 最新开奖数据（由 fetch_lottery.py 自动生成，无 CORS 限制） -->
-<!-- v4.3: 缓存破坏 — http 模式附加时间戳防止缓存；file 模式不加（浏览器不缓存本地文件，加查询参数反致404） -->
+<!-- v5.5: 用 DOM API 同步注入 lottery_data.js，替代废弃的 document.write -->
 <script>
-if (location.protocol === 'file:') {
-  document.write('<script src="lottery_data.js"><\/script>');
-} else {
-  document.write('<script src="lottery_data.js?_t=' + Date.now() + '"><\/script>');
-}
+(function(){
+  var s = document.createElement('script');
+  s.src = location.protocol === 'file:'
+    ? 'lottery_data.js'
+    : 'lottery_data.js?_t=' + Date.now();
+  document.head.appendChild(s);
+})();
 </script>
 
 <script>
@@ -469,7 +468,8 @@ function mandelPool(maxNum,freq){const scores=[];for(let n=1;n<=maxNum;n++)score
 //  历史数据
 // =========================================================
 const SSQ_DATA = [
-  // ---- 最新真实数据 (2026-11-17 07:51 fetch_lottery.py v5.0 更新) ----
+  // ---- 最新真实数据 (2026-11-19 08:14 fetch_lottery.py v5.0 更新) ----
+  ["2026132",[5,9,13,17,18,21],[11]],
   ["2026131",[1,10,19,26,31,33],[15]],
   ["2026130",[1,2,6,16,20,28],[2]],
   ["2026129",[3,9,16,20,25,30],[5]],
@@ -519,11 +519,11 @@ const SSQ_DATA = [
   ["2026085",[6,9,13,17,24,28],[15]],
   ["2026084",[1,5,6,10,12,16],[5]],
   ["2026083",[7,14,15,23,28,33],[3]],
-  ["2026082",[5,7,10,14,21,28],[4]],
 ];
 
 const DLT_DATA = [
-  // ---- 最新真实数据 (2026-11-17 07:51 fetch_lottery.py v5.0 更新) ----
+  // ---- 最新真实数据 (2026-11-19 08:14 fetch_lottery.py v5.0 更新) ----
+  ["2026132",[2,9,16,26,35],[6,11]],
   ["2026131",[2,11,18,19,29],[4,7]],
   ["2026130",[1,7,11,27,29],[2,6]],
   ["2026129",[2,12,14,17,33],[7,8]],
@@ -573,11 +573,11 @@ const DLT_DATA = [
   ["2026085",[3,4,14,28,31],[5,7]],
   ["2026084",[13,25,30,32,33],[4,5]],
   ["2026083",[14,15,16,23,26],[7,9]],
-  ["2026082",[16,26,27,28,34],[2,6]],
 ];
 
 const QXC_DATA = [
-  // ---- 最新真实数据 (2026-11-17 07:51 fetch_lottery.py v5.0 更新) ----
+  // ---- 最新真实数据 (2026-11-19 08:14 fetch_lottery.py v5.0 更新) ----
+  ["2026132",[0,0,7,0,4,2,7]],
   ["2026131",[4,5,6,1,9,7,3]],
   ["2026130",[6,7,4,8,0,4,5]],
   ["2026129",[4,0,6,5,2,9,14]],
@@ -627,7 +627,6 @@ const QXC_DATA = [
   ["2026085",[8,3,7,0,5,1,4]],
   ["2026084",[6,3,8,4,4,0,7]],
   ["2026083",[5,2,1,9,6,3,12]],
-  ["2026082",[9,4,7,1,0,4,7]],
 ];
 
 // =========================================================
