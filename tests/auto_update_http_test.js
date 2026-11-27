@@ -77,6 +77,9 @@ function waitServer(url, ms) {
   }
 
   // window.LOTTERY_DATA 由 lottery_data.js 加载（验证不再 404）
+  // /api/refresh 在线模式需抓官网（约2~4s），localStorage 是异步写入；
+  // 等待其落盘后再断言，避免"init 同步渲染完成但 fetch 尚未回调"的竞态。
+  await page.waitForFunction(() => !!localStorage.getItem('lottery_last_update'), null, { timeout: 15000 }).catch(() => {});
   const info = await page.evaluate(() => ({
     ld: typeof window.LOTTERY_DATA !== 'undefined' && window.LOTTERY_DATA ? Object.keys(window.LOTTERY_DATA) : null,
     ssq: SSQ_DATA.length, dlt: DLT_DATA.length, qxc: QXC_DATA.length,
